@@ -107,7 +107,49 @@ npx wrangler d1 execute kan-game-prod --env production --remote --command "DELET
 - D1 の Time Travel には、消した時点より前の状態が 30 日残る。取り込みをやり直すときは、消した後の空の状態から始める
 - 予行のあいだに `kan-game.app` で作られた ID（予行の確認で開いた端末など）も消える。その端末は、次に開いた時点で新しい ID になる
 
-## 5. 告知（R4）で検索エンジンに載せる
+## 5. 本番の移行（R4）の当日
 
-告知までは、`public/_headers` の `X-Robots-Tag: noindex` で、dev と本番の両方を検索エンジンに載せない。
-`_headers` は dev と本番で共有なので、告知のときに本番だけ外す方法を決める（例: 本番の Worker で、HTML の応答からこのヘッダーを外す）。利用規約とプライバシーポリシーの下書きの表示を外し、制定日を入れるのも同じ時点にする。
+当日の順序の正本は TAKO-SEN の `docs/DEPLOY_PROD.md`「本番の移行（R4）」にある。kan/game 側の作業は次のとおり。どれも利用者の承認を得てから行う。
+
+1. 予行のデータを消す（この文書の 4）。TAKO-SEN の 1 と同じ時点で行う
+2. TAKO-SEN が書き出し直した `kan-game-import.sql` を取り込み、件数を確かめる（この文書の 3）。TAKO-SEN の 4 と同じ時点で行う
+3. 検索エンジンに載せ、規約とポリシーを確定する。TAKO-SEN の 5（`tako` の `X-Robots-Tag` を外す）と同じ時点で出す
+   - 本番だけ `X-Robots-Tag: noindex` を外す。`public/_headers` は dev と本番で共有なので、外し方を当日までに決める（例: 本番の Worker で、HTML の応答からこのヘッダーを外す）
+   - `public/terms.html` と `public/privacy.html` から「公開前の下書き」の注記を消し、制定日に切り替えの日を入れる（どちらも該当箇所に HTML のコメントがある）
+   - `npm run deploy:production` で出す
+
+## 6. 運用
+
+2026-10-18 に利用者と決めた最小限の運用。濫用の監視（頻度制限と週 1 回のログの確認）とバックアップ（D1 の Time Travel）の方針は、TAKO-SEN の `docs/DEPLOY_PROD.md`「運用」と共通。
+
+### 不適切な名前を消す
+
+名前は本人が変えられないので、規約の連絡先で連絡を受け、運営者が消す。消された本人は、次にゲームを開いたときに名前を決め直せる（`getName` が `null` を返し、`registerName` がまた通る）。
+
+1. kan/game 側で、その ID の名前の行を消す。ID は残るので、引き継ぎコード、復旧コード、ゲームの記録はそのまま使える
+
+   ```sh
+   npx wrangler d1 execute kan-game-prod --env production --remote --command "DELETE FROM names WHERE id = '<ID>'"
+   ```
+
+2. TAKO-SEN 側で、プロフィールの名前を仮の文字列に替えて同意を外す（TAKO-SEN の `docs/DEPLOY_PROD.md`「ゲーム名への対応」）。`WHERE` に元の名前を入れる。1 と 2 のあいだに本人が名前を決め直したとき、新しい名前を上書きしないため
+
+注意:
+
+- 消した名前はすぐに空き、誰でも（本人も）同じ名前を登録し直せる。kan/game には、使えない名前の一覧がない。同じ名前が繰り返されるようなら、一覧を設ける
+- 名前は外部キーで ID につながるだけなので、行を消してもほかの表には影響しない
+
+### 障害時の復旧
+
+- Worker: 版を戻す。版の一覧は `npx wrangler versions list --env production` で見て、`npx wrangler rollback <版の ID> --env production` で戻す
+  - **鍵の入れ替え（`ID_DESIGN.md`「鍵の管理」）より前の版へ戻さない。** 戻した版の `ID_PUBLIC_KEYS` に、新しい `kid` が無い。新しい鍵で署名された Cookie を検証できず、その端末は新しい ID を受け取り、元の ID を失う
+  - 版を戻しても D1 のスキーマは戻らない。マイグレーションを当てた後に戻すときは、古い版がそのスキーマで動くかを確かめる
+- D1: Time Travel で戻す。その時刻より後の書き込みは消えるので、利用者の承認を得てから行う
+
+  ```sh
+  npx wrangler d1 time-travel info kan-game-prod --env production   # 現在の地点
+  npx wrangler d1 time-travel restore kan-game-prod --env production --timestamp <時刻>
+  ```
+- **`kan-game-prod` と `tako-prod` を片方だけ戻すと、ID と名前が食い違う。** 戻すときは、両方を同じ時刻へ戻すか、食い違いを確かめる
+  - `kan-game-prod` だけを戻すと、その時刻より後に作られた ID は行が無くなる。Cookie の署名は有効なので、kan/game はその ID を退会済みとして扱う（`410 id_deleted` で Cookie を消す）。本人は次に開いたときに新しい ID を受け取り、`tako-prod` に残った記録には戻れない。その後に決めた名前も消え、ほかの人が取れるようになる
+  - `tako-prod` だけを戻すと、kan/game には名前があるのに、ゲームの側でプロフィールと記録が消える。ゲームが名前を `getName` で引き直せば、名前は食い違わない
