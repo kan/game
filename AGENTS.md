@@ -110,6 +110,7 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
 ## 進み具合（R1）
 
 - 済: Worker と D1 の雛形、`POST /api/id/session`、鍵の生成スクリプト、引き継ぎコード、復旧コード、引き継ぎ用トークンの入力、退会、ゲームとの RPC（名前の取得と登録）、期限切れの行を消す定期実行と止まった退会のやり直し、検証用のテストベクター、テスト
-- 未着手: ポータルとアカウント画面、`dev.kan-game.app` へのデプロイ（`kan-game-dev` の D1 の作成から）
+- `dev.kan-game.app` へのデプロイ: 2026-10-18 に済（API だけ。`GAMES` は空）
+- 未着手: ポータルとアカウント画面、2 端末（iPhone の Safari を含む）での確認、ブラウザが `__Secure-` の Cookie を `http://localhost` で受け付けるかの確認
 
 段階を進めたらこの節を更新する。

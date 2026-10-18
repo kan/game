@@ -66,8 +66,7 @@
         {
           "binding": "DB",
           "database_name": "kan-game-dev",
-          // Fill in after `wrangler d1 create kan-game-dev`.
-          "database_id": "",
+          "database_id": "bcfe7af2-d732-45bd-a2ac-00c19dd36bc8",
           "migrations_dir": "migrations",
         },
       ],
@@ -91,8 +90,9 @@
         "PORTAL_ORIGIN": "https://dev.kan-game.app",
         // Add "GAME_TAKO" with its service binding in R2.
         "GAMES": "",
-        // JSON array of public JWKs. Add the output of `npm run generate-key`.
-        "ID_PUBLIC_KEYS": "[]",
+        // JSON array of public JWKs, each with kid. To rotate, follow
+        // docs/ID_DESIGN.md「鍵の管理」.
+        "ID_PUBLIC_KEYS": "[{\"kid\":\"2026-10-18-2515ed\",\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"0KpEL8A2l9DupwZ2uVJVr_ZGy-sRbGJcJg-2Wwi8McU\",\"y\":\"yMVIO135BT3klr-T0Xtr4cRkdkAvfkwxAMaTzoH5EC4\"}]",
       },
       // Not inherited from the top level.
       "secrets": {

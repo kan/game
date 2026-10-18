@@ -55,10 +55,18 @@ npm run typecheck
 
 ## 開発環境（dev.kan-game.app）へのデプロイ
 
-初回だけ次を行う。
+2026-10-18 に初回のデプロイを済ませた（D1 `kan-game-dev`、Worker `kan-game-dev`、カスタムドメイン `dev.kan-game.app`）。普段は次の 2 つだけでよい。
 
-1. `npx wrangler d1 create kan-game-dev` を実行し、表示された `database_id` を `wrangler.jsonc` の `env.dev` に書く
-2. `npm run generate-key` で鍵を作る。秘密鍵を `npx wrangler secret put ID_SIGNING_KEY --env dev` で登録し、公開鍵を `env.dev.vars.ID_PUBLIC_KEYS` の配列に足す
-3. `npx wrangler d1 migrations apply DB --env dev --remote`
+```sh
+npx wrangler d1 migrations apply DB --env dev --remote   # マイグレーションを足したとき
+npm run deploy:dev
+```
 
-以後は `npm run deploy:dev` で出す。
+署名鍵を入れ替えるときは、秘密鍵を端末に出さないよう `--secrets-file` を使う。手順の全体は設計書「鍵の管理」にある。
+
+```sh
+npm run generate-key -- --secrets-file <一時ファイル>   # 公開鍵だけが表示される
+# 表示された公開鍵を env.dev.vars.ID_PUBLIC_KEYS の配列に足す
+npx wrangler deploy --env dev --secrets-file <一時ファイル>
+rm <一時ファイル>
+```
