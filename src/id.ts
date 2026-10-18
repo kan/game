@@ -1,4 +1,4 @@
-import { clearIdCookie, error, idCookie, json } from "./http";
+import { clearIdCookie, error, idCookie, isPortalOrigin, json } from "./http";
 import type { IdKeys } from "./keys";
 import { signIdToken, verifyIdCookie, type IdTokenClaims } from "./token";
 
@@ -98,6 +98,33 @@ export function requireId(handler: IdHandler<AuthedIdContext>): IdHandler {
     if (account instanceof Response) return account;
     return handler(request, env, { ...context, account });
   };
+}
+
+/**
+ * Like `requireId`, and also `409 id_deleting` for an ID in the middle of
+ * deletion: an ID being deleted must not spread to more devices.
+ */
+export function requireActiveId(
+  handler: IdHandler<AuthedIdContext>,
+): IdHandler {
+  return requireId((request, env, context) =>
+    context.account.status === "active"
+      ? handler(request, env, context)
+      : Promise.resolve(error(409, "id_deleting")),
+  );
+}
+
+/**
+ * Wraps a handler only the portal may call (the recovery code and deletion
+ * screens live only there): `403 origin_not_allowed` for any other origin.
+ */
+export function portalOnly<C extends IdContext>(
+  handler: IdHandler<C>,
+): IdHandler<C> {
+  return (request, env, context) =>
+    isPortalOrigin(request, env)
+      ? handler(request, env, context)
+      : Promise.resolve(error(403, "origin_not_allowed"));
 }
 
 /** Signs a fresh cookie for `account.id` and returns it with `{ id, name, status }`. */

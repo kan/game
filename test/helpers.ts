@@ -3,7 +3,9 @@ import { expect } from "vitest";
 import worker from "../src/index";
 import { importVerificationKeys, verifyIdToken } from "../src/token";
 
-const ORIGIN = "https://tako-dev.kan-game.app";
+/** A game's origin: allowed for every API except the portal-only ones. */
+export const GAME_ORIGIN = "https://tako-dev.kan-game.app";
+export const PORTAL_ORIGIN = env.PORTAL_ORIGIN;
 export const COOKIE = env.COOKIE_NAME;
 
 /**
@@ -34,7 +36,8 @@ export function apiRequest(
   const headers = new Headers({
     "CF-Connecting-IP": options.ip ?? uniqueIp(),
   });
-  if (options.origin !== null) headers.set("Origin", options.origin ?? ORIGIN);
+  if (options.origin !== null)
+    headers.set("Origin", options.origin ?? GAME_ORIGIN);
   if (options.cookie) headers.set("Cookie", options.cookie);
   let body: string | undefined;
   if (options.body !== undefined) {
@@ -44,7 +47,7 @@ export function apiRequest(
         ? options.body
         : JSON.stringify(options.body);
   }
-  return new Request(`${ORIGIN}${path}`, {
+  return new Request(`${GAME_ORIGIN}${path}`, {
     method: options.method ?? "POST",
     headers,
     body,

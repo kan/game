@@ -18,10 +18,19 @@ export function error(
   return json({ error: code }, status, headers);
 }
 
-/** Whether `Origin` is one of `ALLOWED_ORIGINS` (comma separated). */
+/** Whether `Origin` is the portal's (`PORTAL_ORIGIN`). */
+export function isPortalOrigin(request: Request, env: Env): boolean {
+  return request.headers.get("Origin") === env.PORTAL_ORIGIN.trim();
+}
+
+/**
+ * Whether `Origin` is `PORTAL_ORIGIN` or one of `ALLOWED_ORIGINS` (comma
+ * separated; the games' origins).
+ */
 export function isAllowedOrigin(request: Request, env: Env): boolean {
   const origin = request.headers.get("Origin");
   if (!origin) return false;
+  if (isPortalOrigin(request, env)) return true;
   return env.ALLOWED_ORIGINS.split(",").some(
     (allowed) => allowed.trim() === origin,
   );

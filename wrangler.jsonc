@@ -34,7 +34,12 @@
     // Empty: the cookie is host-only (localhost).
     "COOKIE_DOMAIN": "",
     "ISSUER": "localhost",
-    "ALLOWED_ORIGINS": "http://localhost:8787",
+    // The games' origins (comma separated). The portal is always allowed.
+    // To call the ID APIs from a game served locally on another port, add its
+    // origin here or in .dev.vars, e.g. "http://localhost:5173".
+    "ALLOWED_ORIGINS": "",
+    // The only origin allowed to call the recovery code and deletion APIs.
+    "PORTAL_ORIGIN": "http://localhost:8787",
     // Overridden by .dev.vars (`npm run generate-key -- --dev-vars`).
     "ID_PUBLIC_KEYS": "[]",
   },
@@ -73,7 +78,8 @@
         "COOKIE_NAME": "__Secure-kgdev_id",
         "COOKIE_DOMAIN": "kan-game.app",
         "ISSUER": "dev.kan-game.app",
-        "ALLOWED_ORIGINS": "https://dev.kan-game.app,https://tako-dev.kan-game.app",
+        "ALLOWED_ORIGINS": "https://tako-dev.kan-game.app",
+        "PORTAL_ORIGIN": "https://dev.kan-game.app",
         // JSON array of public JWKs. Add the output of `npm run generate-key`.
         "ID_PUBLIC_KEYS": "[]",
       },

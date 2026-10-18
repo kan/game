@@ -30,31 +30,36 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
 
 ## ファイル構成
 
-| パス                               | 責務                                                                                                                                                                                                                                 |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `src/index.ts`                     | ルーター。`POST` 以外と許可外の `Origin` を断り、Cookie を検証して handler に渡す。定期実行（`scheduled`）もここから呼ぶ                                                                                                             |
-| `src/http.ts`                      | JSON の応答（`Cache-Control: no-store` 付き）、エラーの応答、`Origin` の確認、Cookie の組み立て、クライアントの IP                                                                                                                   |
-| `src/keys.ts`                      | 署名鍵と公開鍵の読み込み。isolate ごとに 1 回だけ import してキャッシュする。署名鍵の `kid` が公開鍵の一覧に無ければ失敗させる                                                                                                       |
-| `src/token.ts`                     | JWT（ES256）の署名と検証、Cookie ヘッダーの解析（同名の Cookie はすべて検証する `verifyIdCookie`）                                                                                                                                   |
-| `src/id.ts`                        | handler の型と文脈（`IdHandler` / `IdContext` / `AuthedIdContext`）、要 ID の API を包む `requireId`、ID の行を引く `findId` と `resolveAccount`（退会済みなら `410`）、Cookie を設定して `{ id, name, status }` を返す `idResponse` |
-| `src/codes.ts`                     | 利用者が入力するコード（32 種の文字）の生成と正規化。引き継ぎコードと復旧コードで共有する                                                                                                                                            |
-| `src/session.ts`                   | `POST /api/id/session`（ID の発行と延長）                                                                                                                                                                                            |
-| `src/transfer.ts`                  | 引き継ぎコードの発行と入力                                                                                                                                                                                                           |
-| `src/maintenance.ts`               | 期限切れの引き継ぎコードと引き継ぎ用トークンを消す（1 日 1 回の定期実行）                                                                                                                                                            |
-| `migrations/`                      | D1 のスキーマ。設計書の全テーブルを `0001_initial.sql` に持つ                                                                                                                                                                        |
-| `scripts/generate-signing-key.mjs` | 鍵の生成                                                                                                                                                                                                                             |
-| `test/`                            | テストと、テスト用の型（`env.d.ts`）、マイグレーションの適用（`apply-migrations.ts`）                                                                                                                                                |
-| `wrangler.jsonc`                   | 先頭がローカル用、`env.dev` が `dev.kan-game.app` 用                                                                                                                                                                                 |
-| `worker-configuration.d.ts`        | `wrangler types` の生成物。手で編集しない                                                                                                                                                                                            |
+| パス                               | 責務                                                                                                                                                                                                                                                                                              |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/index.ts`                     | ルーター。`POST` 以外と許可外の `Origin` を断り、Cookie を検証して handler に渡す。定期実行（`scheduled`）もここから呼ぶ                                                                                                                                                                          |
+| `src/http.ts`                      | JSON の応答（`Cache-Control: no-store` 付き）、エラーの応答、`Origin` の確認、Cookie の組み立て、クライアントの IP                                                                                                                                                                                |
+| `src/keys.ts`                      | 署名鍵と公開鍵の読み込み。isolate ごとに 1 回だけ import してキャッシュする。署名鍵の `kid` が公開鍵の一覧に無ければ失敗させる                                                                                                                                                                    |
+| `src/token.ts`                     | JWT（ES256）の署名と検証、Cookie ヘッダーの解析（同名の Cookie はすべて検証する `verifyIdCookie`）                                                                                                                                                                                                |
+| `src/id.ts`                        | handler の型と文脈（`IdHandler` / `IdContext` / `AuthedIdContext`）、要 ID の API を包む `requireId` と `requireActiveId`、ポータル限定の API を包む `portalOnly`、ID の行を引く `findId` と `resolveAccount`（退会済みなら `410`）、Cookie を設定して `{ id, name, status }` を返す `idResponse` |
+| `src/codes.ts`                     | 利用者が入力するコード（32 種の文字）の生成と正規化、秘密の値の SHA-256（`hashSecret`）                                                                                                                                                                                                           |
+| `src/redeem.ts`                    | 3 つの入力の API に共通の流れ（`redeemHandler`）。頻度制限、本文の解析、ID の切り替え                                                                                                                                                                                                             |
+| `src/session.ts`                   | `POST /api/id/session`（ID の発行と延長）                                                                                                                                                                                                                                                         |
+| `src/transfer.ts`                  | 引き継ぎコードの発行と入力                                                                                                                                                                                                                                                                        |
+| `src/recovery.ts`                  | 復旧コードの発行と入力（ポータル限定）                                                                                                                                                                                                                                                            |
+| `src/migration.ts`                 | 引き継ぎ用トークンの入力。トークンの登録は移行の作業で D1 へ直接行う                                                                                                                                                                                                                              |
+| `src/maintenance.ts`               | 期限切れの引き継ぎコードと引き継ぎ用トークンを消す（1 日 1 回の定期実行）                                                                                                                                                                                                                         |
+| `migrations/`                      | D1 のスキーマ。設計書の全テーブルを `0001_initial.sql` に持つ                                                                                                                                                                                                                                     |
+| `scripts/generate-signing-key.mjs` | 鍵の生成                                                                                                                                                                                                                                                                                          |
+| `test/`                            | テストと、テスト用の型（`env.d.ts`）、マイグレーションの適用（`apply-migrations.ts`）                                                                                                                                                                                                             |
+| `wrangler.jsonc`                   | 先頭がローカル用、`env.dev` が `dev.kan-game.app` 用                                                                                                                                                                                                                                              |
+| `worker-configuration.d.ts`        | `wrangler types` の生成物。手で編集しない                                                                                                                                                                                                                                                         |
 
 ## 実装の規約
 
 - **`src/token.ts` は Web Crypto 以外に依存させない。** 各ゲームがこのファイルを写して Cookie の検証に使うため（設計書「鍵の管理」）。`src/` の他のファイルや npm のパッケージを import しない
 - `/api/id/*` の API は `src/index.ts` の `ID_ROUTES` に足す。`POST` の限定、`Origin` の確認、鍵の読み込み、Cookie の検証はルーターが行うので、handler で繰り返さない
-  - 要 ID の API は `requireId(handler)` で包んで登録する。`401 no_id` と `410 id_deleted` は `requireId` が返し、handler は ID の行（`context.account`）を受け取る
+  - 要 ID の API は `requireId(handler)` で包んで登録する。`401 no_id` と `410 id_deleted` は `requireId` が返し、handler は ID の行（`context.account`）を受け取る。退会の途中の ID を断る API は `requireActiveId` で包む（`409 id_deleting` も返す）
   - それ以外の handler は `context.claims`（検証済みの Cookie、無ければ null）を受け取る。その ID が退会済みかは確かめていないので、要るなら `resolveAccount` を呼ぶ
-  - 復旧コードと退会の API は、呼べるオリジンをポータルだけにする（設計書「HTTP の API」）。ルーターにはまだその区別が無いので、これらを実装するときに `ID_ROUTES` の側で表せるようにする
-  - 3 つの redeem は、頻度制限、本文の解析、ID の切り替えが共通になる。2 つ目の redeem を実装するときに、`src/transfer.ts` から共通の処理を切り出す
+  - ポータルだけが呼べる API（復旧コード、退会）は `portalOnly(...)` で包む。要 ID でもある API は `portalOnly(requireId(handler))` の順にする
+  - 許可するオリジンは `PORTAL_ORIGIN`（常に許可）と `ALLOWED_ORIGINS`（ゲームのオリジン）。ポータルのオリジンを `ALLOWED_ORIGINS` に重ねて書かない
+- 入力の API（redeem）は `redeemHandler` に、API 名、本文のフィールド名、正規化（`parse`）、ID の引き方（`resolve`）を渡して作る。1 回限りの値は、見つける文と同じ文で、ID が active のときだけ消費する。active でない ID は `redeemHandler` が断る
+- 退会の途中（`deleting`）の ID は、ほかの端末へ広げない。コードの発行は `requireActiveId` で `409 id_deleting` として断り、入力は `400 invalid_code` で断る
 - Cookie を設定して `{ id, name, status }` を返す API（session と 3 つの redeem）は `idResponse` で応答を組み立てる。署名と `Set-Cookie` を handler ごとに書かない
 - 入力の API（redeem）の頻度制限は、1 つの binding `REDEEM_RATE_LIMITER` を共有し、キーを `<API 名>:<IP>` にして API ごとに数える（設計書の上限が 3 種とも 5 回 / 60 秒のため）。制限の確認は本文を読む前に行い、誤ったコードの試行も数える
 - 利用者が入力するコードは `src/codes.ts` の `randomCode` と `normalizeCode` で作り、受け付ける
@@ -92,7 +97,7 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
 
 ## 進み具合（R1）
 
-- 済: Worker と D1 の雛形、`POST /api/id/session`、鍵の生成スクリプト、引き継ぎコード、期限切れの行を消す定期実行、テスト
-- 未着手: 復旧コード、引き継ぎ用トークン、退会、ゲームとの RPC（`WorkerEntrypoint`）、ポータルとアカウント画面、検証用のテストベクター、`dev.kan-game.app` へのデプロイ（`kan-game-dev` の D1 の作成から）
+- 済: Worker と D1 の雛形、`POST /api/id/session`、鍵の生成スクリプト、引き継ぎコード、復旧コード、引き継ぎ用トークンの入力、期限切れの行を消す定期実行、テスト
+- 未着手: 退会、ゲームとの RPC（`WorkerEntrypoint`）、ポータルとアカウント画面、検証用のテストベクター、`dev.kan-game.app` へのデプロイ（`kan-game-dev` の D1 の作成から）
 
 段階を進めたらこの節を更新する。

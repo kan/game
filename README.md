@@ -10,6 +10,9 @@ kan-game.app のポータルと ID 基盤の Worker。
 | `src/index.ts`                     | ルーター（`Origin` の確認、Cookie の検証、要 ID の判定）と定期実行の起点     |
 | `src/session.ts`                   | `POST /api/id/session`（ID の発行と延長）                                    |
 | `src/transfer.ts`                  | 引き継ぎコードの発行と入力                                                   |
+| `src/recovery.ts`                  | 復旧コードの発行と入力（ポータル限定）                                       |
+| `src/migration.ts`                 | 引き継ぎ用トークンの入力                                                     |
+| `src/redeem.ts`                    | 入力の API に共通の流れ                                                      |
 | `src/maintenance.ts`               | 期限切れの行を消す定期実行                                                   |
 | `src/id.ts`                        | Cookie からの ID の読み取りと、Cookie を設定する応答の組み立て               |
 | `src/token.ts`                     | Cookie の JWT（ES256）の署名と検証。各ゲームはこのファイルを写して検証に使う |
@@ -26,6 +29,7 @@ npm run dev                          # http://localhost:8787
 ```
 
 `wrangler.jsonc` の先頭の設定がローカル用で、Cookie は `localhost` だけに付く。
+別のポートで動かすゲームから ID の API を呼ぶときは、そのオリジン（例 `http://localhost:5173`）を `.dev.vars` の `ALLOWED_ORIGINS` に書く。
 
 ## テスト
 

@@ -1,15 +1,29 @@
 import { error, isAllowedOrigin } from "./http";
-import { readIdClaims, requireId, type IdHandler } from "./id";
+import {
+  portalOnly,
+  readIdClaims,
+  requireActiveId,
+  type IdHandler,
+} from "./id";
 import { loadKeys } from "./keys";
 import { deleteExpiredRows } from "./maintenance";
+import { handleRedeemMigrationToken } from "./migration";
+import { handleIssueRecoveryCode, handleRedeemRecoveryCode } from "./recovery";
 import { handleSession } from "./session";
 import { handleIssueTransferCode, handleRedeemTransferCode } from "./transfer";
 
-/** APIs that need an ID are wrapped in `requireId`. */
+/**
+ * APIs that need an ID are wrapped in `requireId`, or in `requireActiveId`
+ * when an ID being deleted must be refused; APIs only the portal may call are
+ * wrapped in `portalOnly` (docs/ID_DESIGN.md「HTTP の API」).
+ */
 const ID_ROUTES: Record<string, IdHandler> = {
   "/api/id/session": handleSession,
-  "/api/id/transfer-codes": requireId(handleIssueTransferCode),
+  "/api/id/transfer-codes": requireActiveId(handleIssueTransferCode),
   "/api/id/transfer-codes/redeem": handleRedeemTransferCode,
+  "/api/id/recovery-code": portalOnly(requireActiveId(handleIssueRecoveryCode)),
+  "/api/id/recovery-code/redeem": portalOnly(handleRedeemRecoveryCode),
+  "/api/id/migration/redeem": handleRedeemMigrationToken,
 };
 
 export default {

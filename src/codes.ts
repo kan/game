@@ -12,6 +12,21 @@ export function randomCode(length: number): string {
 }
 
 /**
+ * The SHA-256 of a secret as hex, for storing recovery codes and migration
+ * tokens. Their randomness is long enough that a slow hash is not needed
+ * (docs/ID_DESIGN.md「復旧コード」).
+ */
+export async function hashSecret(secret: string): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(secret),
+  );
+  return Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
+}
+
+/**
  * Folds full-width characters (typed with a Japanese IME) to ASCII, drops the
  * spaces and hyphens people add when copying a grouped code, and upper-cases.
  * Returns null unless exactly `length` alphabet symbols remain.

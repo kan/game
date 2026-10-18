@@ -37,8 +37,9 @@ export default defineConfig(async () => {
               current.publicJwk,
               previous.publicJwk,
             ]),
-            ALLOWED_ORIGINS:
-              "https://dev.kan-game.app,https://tako-dev.kan-game.app",
+            // The portal is allowed through PORTAL_ORIGIN alone.
+            ALLOWED_ORIGINS: "https://tako-dev.kan-game.app",
+            PORTAL_ORIGIN: "https://dev.kan-game.app",
             COOKIE_DOMAIN: "kan-game.app",
             ISSUER: "dev.kan-game.app",
             TEST_PREVIOUS_SIGNING_KEY: JSON.stringify(previous.privateJwk),
