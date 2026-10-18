@@ -132,7 +132,8 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
 
 - 済: Worker と D1 の雛形、`POST /api/id/session`、鍵の生成スクリプト、引き継ぎコード、復旧コード、引き継ぎ用トークンの入力、退会、ゲームとの RPC（名前の取得と登録）、期限切れの行を消す定期実行と止まった退会のやり直し、検証用のテストベクター、テスト
 - `dev.kan-game.app` へのデプロイ: 2026-10-18 に済（API、ポータル、規約の下書き）
-- TAKO-SEN との接続（R2）: `env.dev` に `GAME_TAKO`（Worker `tako-dev` の entrypoint `GameService`）を足し、`GAMES` に列挙した。**`tako-dev` がデプロイされるまで kan-game-dev を出し直さない。** 先に出すと binding の先が無く、退会が毎回 `503 deletion_incomplete` になる。TAKO-SEN のセッションから `tako-dev` を出したと連絡が来たら出す。R3 の本番は Worker `tako`（D1 `tako-prod`）の想定
+- TAKO-SEN との接続（R2）: `env.dev` の `GAME_TAKO`（Worker `tako-dev` の entrypoint `GameService`）は 2026-10-18 から有効。dev のポータルで退会すると、`tako-dev` の D1 の `deleted_accounts` へ行が入ることを確かめた。R3 の本番は Worker `tako`（D1 `tako-prod`）の想定
+  - binding の先の Worker が無いまま kan/game を出すと、退会が毎回 `503 deletion_incomplete` になる。ゲームを足すときは、ゲームの Worker を先に出す
 - ポータルとアカウント画面: 2026-10-18 に済。ローカルで、Playwright の 3 つのコンテキストを端末に見立てて、引き継ぎ、復旧、退会を確認した
 - 利用規約とプライバシーポリシー: 2026-10-18 に下書きを書いた。利用者の確認と公開（R4 の前）が残る
 - 未着手: 実機の 2 端末（iPhone の Safari を含む）での確認（利用者が進めている）、Firefox と Safari が `__Secure-` の Cookie を `http://localhost` で受け付けるかの確認
