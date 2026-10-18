@@ -133,6 +133,7 @@ ID 基盤がゲームに提供するもの（`ID` binding）は次のとおり�
 - 有効な Cookie があり、その ID が D1 にあれば、新しい `exp` で署名し直した Cookie を返す。`last_seen_at` は 1 日に 1 回だけ更新する
 - Cookie がない、または署名が無効なら、新しい ID を発行して Cookie を返す
 - 署名は有効だが ID が D1 にない（退会済み）なら、Cookie を消す応答を返し、新しい ID は発行しない。画面が再び呼べば新しい ID になる
+  - この応答は `410 id_deleted` とする（本書で追加）
 
 計画は「Cookie なしで初めて届いたリクエストで発行する」としている。
 本書では発行を `POST /api/id/session` に限る（本書で追加）。
@@ -264,7 +265,7 @@ CREATE INDEX migration_tokens_id ON migration_tokens (id);
 
 ## テスト
 
-- 単体と結合のテストは `@cloudflare/vitest-pool-workers` で、ローカルの D1 に対して行う
+- 単体と結合のテストは `@cloudflare/vitest-plugin`（旧名 `@cloudflare/vitest-pool-workers`）で、ローカルの D1 に対して行う
 - 計画の R1 の完了条件（発行、検証、引き継ぎ、名前の登録と重複の拒否、退会を自動テストと 2 端末で確認する）に、復旧コードと引き継ぎ用トークンの入力を加える
 - 2 端末の確認には iPhone の Safari を含める。Safari がサーバーの設定した Cookie の有効期限を短くする条件に当たらないかを確かめる
 

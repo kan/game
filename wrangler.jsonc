@@ -1,0 +1,72 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // The top level is the local environment (`wrangler dev`).
+  "name": "kan-game-local",
+  "main": "./src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "kan-game-local",
+      "migrations_dir": "migrations",
+    },
+  ],
+  "ratelimits": [
+    {
+      "name": "ISSUE_RATE_LIMITER",
+      "namespace_id": "1001",
+      "simple": { "limit": 10, "period": 60 },
+    },
+  ],
+  "vars": {
+    // Whether browsers accept a `__Secure-` cookie on http://localhost is still
+    // to be checked in R1 (docs/ID_DESIGN.md「ローカルの開発」).
+    "COOKIE_NAME": "__Secure-kgdev_id",
+    // Empty: the cookie is host-only (localhost).
+    "COOKIE_DOMAIN": "",
+    "ISSUER": "localhost",
+    "ALLOWED_ORIGINS": "http://localhost:8787",
+    // Overridden by .dev.vars (`npm run generate-key -- --dev-vars`).
+    "ID_PUBLIC_KEYS": "[]",
+  },
+  "secrets": {
+    "required": ["ID_SIGNING_KEY"],
+  },
+  "observability": {
+    "enabled": true,
+  },
+  "env": {
+    "dev": {
+      "name": "kan-game-dev",
+      "routes": [{ "pattern": "dev.kan-game.app", "custom_domain": true }],
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "kan-game-dev",
+          // Fill in after `wrangler d1 create kan-game-dev`.
+          "database_id": "",
+          "migrations_dir": "migrations",
+        },
+      ],
+      "ratelimits": [
+        {
+          "name": "ISSUE_RATE_LIMITER",
+          "namespace_id": "1101",
+          "simple": { "limit": 10, "period": 60 },
+        },
+      ],
+      "vars": {
+        "COOKIE_NAME": "__Secure-kgdev_id",
+        "COOKIE_DOMAIN": "kan-game.app",
+        "ISSUER": "dev.kan-game.app",
+        "ALLOWED_ORIGINS": "https://dev.kan-game.app,https://tako-dev.kan-game.app",
+        // JSON array of public JWKs. Add the output of `npm run generate-key`.
+        "ID_PUBLIC_KEYS": "[]",
+      },
+      // Not inherited from the top level.
+      "secrets": {
+        "required": ["ID_SIGNING_KEY"],
+      },
+    },
+  },
+}
