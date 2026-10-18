@@ -114,9 +114,15 @@ npx wrangler d1 execute kan-game-prod --env production --remote --command "DELET
 1. 予行のデータを消す（この文書の 4）。TAKO-SEN の 1 と同じ時点で行う
 2. TAKO-SEN が書き出し直した `kan-game-import.sql` を取り込み、件数を確かめる（この文書の 3）。TAKO-SEN の 4 と同じ時点で行う
 3. 検索エンジンに載せ、規約とポリシーを確定する。TAKO-SEN の 5（`tako` の `X-Robots-Tag` を外す）と同じ時点で出す
-   - 本番だけ `X-Robots-Tag: noindex` を外す。`public/_headers` は dev と本番で共有なので、外し方を当日までに決める（例: 本番の Worker で、HTML の応答からこのヘッダーを外す）
-   - `public/terms.html` と `public/privacy.html` から「公開前の下書き」の注記を消し、制定日に切り替えの日を入れる（どちらも該当箇所に HTML のコメントがある）
-   - `npm run deploy:production` で出す
+   - 2026-10-18 に、次の変更を用意してコミットした。当日は `npm run deploy:production` で出すだけでよい
+     - `public/_headers`: `X-Robots-Tag: noindex` を `https://dev.kan-game.app/*` だけに付ける（`_headers` は URL にホスト名を含めて書ける）
+     - `public/terms.html` と `public/privacy.html`: 「公開前の下書き」の注記と `<meta name="robots" content="noindex">` を消し、制定日を 2026 年 10 月 19 日にした
+   - 出したら、本番の HTML に `X-Robots-Tag` が無く、dev には残ることを確かめる
+
+     ```sh
+     curl -sI https://kan-game.app/terms | grep -i x-robots-tag       # 何も出ない
+     curl -sI https://dev.kan-game.app/terms | grep -i x-robots-tag   # noindex
+     ```
 
 ## 6. 運用
 

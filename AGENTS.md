@@ -50,7 +50,7 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
 | `src/migration.ts`                  | 引き継ぎ用トークンの入力。トークンの登録は移行の作業で D1 へ直接行う                                                                                                                                                                                                                              |
 | `src/maintenance.ts`                | 期限切れの引き継ぎコードと引き継ぎ用トークンを消す（1 日 1 回の定期実行）                                                                                                                                                                                                                         |
 | `migrations/`                       | D1 のスキーマ。設計書の全テーブルを `0001_initial.sql` に持つ                                                                                                                                                                                                                                     |
-| `public/`                           | ポータルの画面（Workers Static Assets）。トップ（`index.html`）、アカウント画面（`account.html`）、利用規約とプライバシーポリシー（下書き）、404、`_headers`（CSP など）                                                                                                                          |
+| `public/`                           | ポータルの画面（Workers Static Assets）。トップ（`index.html`）、アカウント画面（`account.html`）、利用規約とプライバシーポリシー、404、`_headers`（CSP など）                                                                                                                                    |
 | `public/favicon.svg` ほか           | アイコン（デフォルメしたゲームコントローラ）。`favicon.svg` が元で、`favicon-32.png` と `apple-touch-icon.png`（180px）はそこから描き出したもの。ヘッダーのロゴにも `favicon.svg` を使う。描き直したら PNG も作り直す                                                                             |
 | `public/assets/games/`              | トップのゲームの一覧に出す各ゲームのアイコン。`tako-sen.svg` は TAKO-SEN の `public/tako.svg`（55bc12e）の写しで、TAKO-SEN がアイコンを変えたら写し直す。ゲームの一覧には、`kan-game.app` に合流したゲームだけを載せる（vegtab は合流するまで載せない）                                           |
 | `public/assets/lib.js`              | 画面の処理のうち DOM に触れない部分（API の呼び出し、エラーの文言、コードの区切り、入力したコードの種類の判定）。`test/portal-lib.test.ts` で試す。今はポータル専用で、ゲームへ写す前提のファイル（`src/token.ts` など）とは扱いが違う                                                            |
@@ -92,7 +92,8 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
   - **インラインの `<script>` と `style` 属性を書かない。** `public/_headers` の CSP が `'self'` 以外を許さないため
   - ID（UUID）を画面に出さない。TAKO-SEN と同じく、認証の ID は表示しない
   - 画面は起動時とオフラインからの復帰時に `POST /api/id/session` を呼ぶ（`lib.js` の `startSession`）
-  - 利用規約（`terms.html`）とプライバシーポリシー（`privacy.html`）は下書きの状態で、冒頭に「公開前の下書き」と出している。**下書きの表示を外して制定日を入れる（公開する）のは、利用者が承認してから。** 公開は R4 の前提
+  - 利用規約（`terms.html`）とプライバシーポリシー（`privacy.html`）の制定日は 2026 年 10 月 19 日。**本文を変えるのは、利用者が承認してから。** 変えたら、規約は第 9 条、ポリシーは「12. 改定」に従って知らせる
+  - 検索エンジンに載せないのは dev だけ（`_headers` の `https://dev.kan-game.app/*`）。404 ページは `<meta name="robots" content="noindex">` を持つ
   - プライバシーポリシーは実装の事実（Cookie の名前と期限、保存する項目、公開される項目、退会で消えるものと残るもの、ログとバックアップの保持期間）を書いている。これらを変えたら、ポリシーの該当箇所も直す。ゲームを足したら「ゲームごとの記録」と「公開される情報」に、そのゲームの分を足す
 - 時刻は Unix エポックからのミリ秒の整数で D1 に持つ。JWT の `iat` と `exp` だけは秒
 - 鍵は `loadKeys(env)` から取る。リクエストごとに `importKey` しない
@@ -132,7 +133,8 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
 
 ## 進み具合
 
-- 本番環境（R3）: 2026-10-18 に Worker `kan-game`、D1 `kan-game-prod`、カスタムドメイン `kan-game.app` を作った。同日、TAKO-SEN が本番の Worker `tako` を出したので `GAME_TAKO` を足して出し直し、退会で `tako-prod` の `deleted_accounts` へ行が入ることを確かめた。予行の移行データ（旧 D1 の 11 人分）も取り込み済みで、R4 の前に空へ戻す（`docs/DEPLOY_PROD.md` の 4）。告知（R4）までは、dev と本番の両方を `X-Robots-Tag: noindex` にしている
+- 本番環境（R3）: 2026-10-18 に Worker `kan-game`、D1 `kan-game-prod`、カスタムドメイン `kan-game.app` を作った。同日、TAKO-SEN が本番の Worker `tako` を出したので `GAME_TAKO` を足して出し直し、退会で `tako-prod` の `deleted_accounts` へ行が入ることを確かめた。予行の移行データ（旧 D1 の 11 人分）も取り込み済みで、R4 の前に空へ戻す（`docs/DEPLOY_PROD.md` の 4）
+- 本番の移行（R4）: 2026-10-19 に行う（移行期間の最終日は 2027-01-19）。noindex を本番から外し、規約とポリシーに制定日を入れる変更は、2026-10-18 に用意してある（`docs/DEPLOY_PROD.md` の 5）。**R4 の当日まで、本番へデプロイしない**（この変更が出て、本番が検索エンジンに載る）
 
 ### R1
 
@@ -141,7 +143,7 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
 - TAKO-SEN との接続（R2）: `env.dev` の `GAME_TAKO`（Worker `tako-dev` の entrypoint `GameService`）は 2026-10-18 から有効。dev のポータルで退会すると、`tako-dev` の D1 の `deleted_accounts` へ行が入ることを確かめた。本番の Worker `tako`（D1 `tako-prod`）とのつなぎ方は、上の「本番環境（R3）」にある
   - binding の先の Worker が無いまま kan/game を出すと、退会が毎回 `503 deletion_incomplete` になる。ゲームを足すときは、ゲームの Worker を先に出す
 - ポータルとアカウント画面: 2026-10-18 に済。ローカルで、Playwright の 3 つのコンテキストを端末に見立てて、引き継ぎ、復旧、退会を確認した
-- 利用規約とプライバシーポリシー: 2026-10-18 に下書きを書いた。利用者の確認と公開（R4 の前）が残る
+- 利用規約とプライバシーポリシー: 2026-10-18 に下書きを書き、利用者が確かめて直した。制定日は 2026 年 10 月 19 日で、R4 の当日に本番へ出す
 - 未着手: 実機の 2 端末（iPhone の Safari を含む）での確認（利用者が進めている）、Firefox と Safari が `__Secure-` の Cookie を `http://localhost` で受け付けるかの確認
 
 段階を進めたらこの節を更新する。

@@ -2,6 +2,7 @@
   Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
-  # Until the announcement (R4): keep both dev and production out of search
-  # engines. At R4, remove it for production only (docs/DEPLOY_PROD.md).
+
+# Keep dev out of search engines. Production is indexed.
+https://dev.kan-game.app/*
   X-Robots-Tag: noindex
