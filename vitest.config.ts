@@ -40,6 +40,8 @@ export default defineConfig(async () => {
             // The portal is allowed through PORTAL_ORIGIN alone.
             ALLOWED_ORIGINS: "https://tako-dev.kan-game.app",
             PORTAL_ORIGIN: "https://dev.kan-game.app",
+            // Tests that need games pass GAMES with fake bindings.
+            GAMES: "",
             COOKIE_DOMAIN: "kan-game.app",
             ISSUER: "dev.kan-game.app",
             TEST_PREVIOUS_SIGNING_KEY: JSON.stringify(previous.privateJwk),

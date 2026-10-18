@@ -40,12 +40,20 @@
     "ALLOWED_ORIGINS": "",
     // The only origin allowed to call the recovery code and deletion APIs.
     "PORTAL_ORIGIN": "http://localhost:8787",
+    // The GAME_<NAME> bindings asked to delete records on account deletion
+    // (comma separated, in calling order).
+    "GAMES": "",
     // Overridden by .dev.vars (`npm run generate-key -- --dev-vars`).
     "ID_PUBLIC_KEYS": "[]",
   },
   "secrets": {
     "required": ["ID_SIGNING_KEY"],
   },
+  // Each game is a service binding named GAME_<NAME>, e.g.
+  //   "services": [{ "binding": "GAME_TAKO", "service": "<the game's Worker>", "entrypoint": "..." }]
+  // and is listed in the GAMES var. Deleting an ID calls deleteAccount(id) on
+  // each listed binding in order; a listed binding that is missing fails the
+  // deletion (docs/ID_DESIGN.md「退会」). Not inherited by env.dev.
   "observability": {
     "enabled": true,
   },
@@ -80,6 +88,8 @@
         "ISSUER": "dev.kan-game.app",
         "ALLOWED_ORIGINS": "https://tako-dev.kan-game.app",
         "PORTAL_ORIGIN": "https://dev.kan-game.app",
+        // Add "GAME_TAKO" with its service binding in R2.
+        "GAMES": "",
         // JSON array of public JWKs. Add the output of `npm run generate-key`.
         "ID_PUBLIC_KEYS": "[]",
       },

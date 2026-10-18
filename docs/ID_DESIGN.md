@@ -123,6 +123,11 @@ ID 基盤がゲームに提供するもの（`ID` binding）は次のとおり�
 | `getName(id)` | 名前、または `null` |
 | `registerName(id, name)` | `ok`（登録した名前）、`name_taken`、`invalid`、`already_named`（既存の名前） |
 
+- 結果は `{ result, name? }` の形で返す。`name` は `ok` と `already_named` のときだけ付く（本書で追加）
+- ID が存在しないか退会の途中なら、`registerName` は `no_id` を返す。`getName` は退会済みの ID に `null` を返す（本書で追加）
+- ID 基盤の Worker の default export は `WorkerEntrypoint` で、ゲームの `ID` binding は entrypoint を指定せずにつなぐ（本書で追加）
+- RPC の契約の型は `kan/game` の `src/rpc.ts` に置く。このファイルは何も import しないので、各ゲームは写して使う（本書で追加）
+
 ゲームが ID 基盤に提供するもの（`GAME_<名前>` binding）は次のとおり。
 
 | メソッド | 内容 |
@@ -207,6 +212,12 @@ TAKO-SEN の開発環境の記録を本番へ移すときに使う。
 ゲームは `deleteAccount` を受けた時点で、その ID を削除済みとして記録し、以後その ID からの書き込みを断る。
 Cookie は退会後も最長 400 日有効なので、ゲームは自分の D1 に削除済みの ID を残し続ける。
 ID 基盤は ID の行が消えていることで退会済みと判定する（「ID の発行と延長」）。
+
+次の点は本書で追加した。
+
+- 「登録されているすべてのゲーム」は、環境変数 `GAMES` に列挙した binding（カンマ区切り）である。列挙した順で呼び、失敗したゲームがあればそこで止める。列挙した binding が無ければ、ID を変更する前に `500 deletion_misconfigured` を返す。設定を書き忘れたゲームが、誰も気付かないまま削除の対象から外れることを防ぐため
+- 成功したら `200` と本文 `{ "status": "deleted" }` を返し、失敗したら `503 deletion_incomplete` を返す
+- `status` が `deleting` の ID も、この API を呼べる（やり直しのため）
 
 退会した ID の名前は、ほかの ID が取得できるようになる（本書で追加）。
 

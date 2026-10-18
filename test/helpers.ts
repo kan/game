@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { expect } from "vitest";
-import worker from "../src/index";
+import { handleFetch } from "../src/router";
 import { importVerificationKeys, verifyIdToken } from "../src/token";
 
 /** A game's origin: allowed for every API except the portal-only ones. */
@@ -58,14 +58,15 @@ export function sessionRequest(options: ApiRequestOptions = {}): Request {
   return apiRequest("/api/id/session", options);
 }
 
+/**
+ * Calls the Worker's HTTP handler with the test env. `overrides` replaces
+ * variables or adds bindings, such as fake `GAME_<NAME>` services.
+ */
 export function call(
   request: Request,
-  overrides: Partial<Env> = {},
+  overrides: Partial<Env> & Record<string, unknown> = {},
 ): Promise<Response> {
-  return worker.fetch(
-    request as Request<unknown, IncomingRequestCfProperties>,
-    { ...env, ...overrides },
-  );
+  return handleFetch(request, { ...env, ...overrides } as Env);
 }
 
 /** The ID token in a response's Set-Cookie, or null. */

@@ -7,7 +7,11 @@ kan-game.app のポータルと ID 基盤の Worker。
 
 | パス                               | 内容                                                                         |
 | ---------------------------------- | ---------------------------------------------------------------------------- |
-| `src/index.ts`                     | ルーター（`Origin` の確認、Cookie の検証、要 ID の判定）と定期実行の起点     |
+| `src/index.ts`                     | Worker の本体（HTTP、定期実行、ゲーム向けの RPC）                            |
+| `src/router.ts`                    | `/api/id/*` のルーター                                                       |
+| `src/names.ts`                     | 名前の規則と、名前の取得と登録（RPC）                                        |
+| `src/account.ts`                   | 退会                                                                         |
+| `src/rpc.ts`                       | ゲームとの RPC の契約の型。各ゲームはこのファイルを写して使う                |
 | `src/session.ts`                   | `POST /api/id/session`（ID の発行と延長）                                    |
 | `src/transfer.ts`                  | 引き継ぎコードの発行と入力                                                   |
 | `src/recovery.ts`                  | 復旧コードの発行と入力（ポータル限定）                                       |

@@ -1,49 +1,29 @@
-import { error, isAllowedOrigin } from "./http";
-import {
-  portalOnly,
-  readIdClaims,
-  requireActiveId,
-  type IdHandler,
-} from "./id";
-import { loadKeys } from "./keys";
+import { WorkerEntrypoint } from "cloudflare:workers";
 import { deleteExpiredRows } from "./maintenance";
-import { handleRedeemMigrationToken } from "./migration";
-import { handleIssueRecoveryCode, handleRedeemRecoveryCode } from "./recovery";
-import { handleSession } from "./session";
-import { handleIssueTransferCode, handleRedeemTransferCode } from "./transfer";
+import { getName, registerName } from "./names";
+import { handleFetch } from "./router";
+import type { IdRpc, RegisterNameResult } from "./rpc";
 
 /**
- * APIs that need an ID are wrapped in `requireId`, or in `requireActiveId`
- * when an ID being deleted must be refused; APIs only the portal may call are
- * wrapped in `portalOnly` (docs/ID_DESIGN.md「HTTP の API」).
+ * The ID platform. Games reach it through their `ID` service binding: HTTP
+ * for the relayed `/api/id/*`, and the `IdRpc` methods (src/rpc.ts) as RPC
+ * (docs/ID_DESIGN.md「ゲームとの RPC」). This module exports only the
+ * entrypoint; the router lives in src/router.ts.
  */
-const ID_ROUTES: Record<string, IdHandler> = {
-  "/api/id/session": handleSession,
-  "/api/id/transfer-codes": requireActiveId(handleIssueTransferCode),
-  "/api/id/transfer-codes/redeem": handleRedeemTransferCode,
-  "/api/id/recovery-code": portalOnly(requireActiveId(handleIssueRecoveryCode)),
-  "/api/id/recovery-code/redeem": portalOnly(handleRedeemRecoveryCode),
-  "/api/id/migration/redeem": handleRedeemMigrationToken,
-};
+export default class IdPlatform extends WorkerEntrypoint<Env> implements IdRpc {
+  override fetch(request: Request): Promise<Response> {
+    return handleFetch(request, this.env);
+  }
 
-export default {
-  async fetch(request, env): Promise<Response> {
-    const handler = ID_ROUTES[new URL(request.url).pathname];
-    if (!handler) return error(404, "not_found");
-    if (request.method !== "POST") {
-      return error(405, "method_not_allowed", { Allow: "POST" });
-    }
-    // Every ID API changes state and is authenticated by a cookie, so
-    // requests from other sites are refused (docs/ID_DESIGN.md「HTTP の API」).
-    if (!isAllowedOrigin(request, env)) return error(403, "origin_not_allowed");
+  override async scheduled(): Promise<void> {
+    await deleteExpiredRows(this.env.DB, Date.now());
+  }
 
-    const keys = await loadKeys(env);
-    const now = Date.now();
-    const claims = await readIdClaims(request, env, keys, now);
-    return handler(request, env, { keys, now, claims });
-  },
+  getName(id: string): Promise<string | null> {
+    return getName(this.env.DB, id);
+  }
 
-  async scheduled(_controller, env): Promise<void> {
-    await deleteExpiredRows(env.DB, Date.now());
-  },
-} satisfies ExportedHandler<Env>;
+  registerName(id: string, name: string): Promise<RegisterNameResult> {
+    return registerName(this.env.DB, id, name, Date.now());
+  }
+}

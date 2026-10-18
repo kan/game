@@ -1,7 +1,6 @@
-import { createScheduledController } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
-import worker from "../src/index";
+import { deleteExpiredRows } from "../src/maintenance";
 import { CODE_ALPHABET } from "../src/codes";
 import { TRANSFER_CODE_LIFETIME_MS } from "../src/transfer";
 import {
@@ -286,7 +285,7 @@ describe("daily cleanup", () => {
       ).bind("expired-hash", id, now - 1, "live-hash", id, now + 60_000),
     ]);
 
-    await worker.scheduled(createScheduledController(), env);
+    await deleteExpiredRows(env.DB, Date.now());
 
     const codes = await env.DB.prepare(
       "SELECT code FROM transfer_codes WHERE id = ?",

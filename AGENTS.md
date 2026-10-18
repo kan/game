@@ -32,7 +32,11 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
 
 | パス                               | 責務                                                                                                                                                                                                                                                                                              |
 | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/index.ts`                     | ルーター。`POST` 以外と許可外の `Origin` を断り、Cookie を検証して handler に渡す。定期実行（`scheduled`）もここから呼ぶ                                                                                                                                                                          |
+| `src/index.ts`                     | Worker の本体。default export の `WorkerEntrypoint`（HTTP、定期実行、ゲーム向けの RPC `getName` / `registerName`）。**entrypoint 以外を export しない**（workerd が名前付き export を entrypoint の候補として扱うため）                                                                           |
+| `src/router.ts`                    | ルーターの `handleFetch` と `ID_ROUTES`。`POST` 以外と許可外の `Origin` を断り、Cookie を検証して handler に渡す                                                                                                                                                                                  |
+| `src/names.ts`                     | 名前の規則（TAKO-SEN の規則を写したもの）と、名前の取得と登録                                                                                                                                                                                                                                     |
+| `src/account.ts`                   | 退会。`GAMES` に列挙した binding の `deleteAccount` を順に呼んでから ID を消す                                                                                                                                                                                                                    |
+| `src/rpc.ts`                       | ゲームとの RPC の契約の型（`IdRpc` / `RegisterNameResult` / `GameService`）。何も import しない                                                                                                                                                                                                   |
 | `src/http.ts`                      | JSON の応答（`Cache-Control: no-store` 付き）、エラーの応答、`Origin` の確認、Cookie の組み立て、クライアントの IP                                                                                                                                                                                |
 | `src/keys.ts`                      | 署名鍵と公開鍵の読み込み。isolate ごとに 1 回だけ import してキャッシュする。署名鍵の `kid` が公開鍵の一覧に無ければ失敗させる                                                                                                                                                                    |
 | `src/token.ts`                     | JWT（ES256）の署名と検証、Cookie ヘッダーの解析（同名の Cookie はすべて検証する `verifyIdCookie`）                                                                                                                                                                                                |
@@ -53,7 +57,9 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
 ## 実装の規約
 
 - **`src/token.ts` は Web Crypto 以外に依存させない。** 各ゲームがこのファイルを写して Cookie の検証に使うため（設計書「鍵の管理」）。`src/` の他のファイルや npm のパッケージを import しない
-- `/api/id/*` の API は `src/index.ts` の `ID_ROUTES` に足す。`POST` の限定、`Origin` の確認、鍵の読み込み、Cookie の検証はルーターが行うので、handler で繰り返さない
+- **`src/rpc.ts` は何も import しない。** 各ゲームが写して、`ID` binding の型付けと `GameService` の実装に使うため。RPC のメソッドを変えたら、このファイルとゲーム側の写しを合わせて直す
+- ゲームを足すときは、`GAME_<名前>` の service binding と、環境変数 `GAMES` への列挙を、環境ごと（先頭と `env.dev`）に両方書く。`GAMES` に列挙した binding が無いと退会は失敗する
+- `/api/id/*` の API は `src/router.ts` の `ID_ROUTES` に足す。`POST` の限定、`Origin` の確認、鍵の読み込み、Cookie の検証はルーターが行うので、handler で繰り返さない
   - 要 ID の API は `requireId(handler)` で包んで登録する。`401 no_id` と `410 id_deleted` は `requireId` が返し、handler は ID の行（`context.account`）を受け取る。退会の途中の ID を断る API は `requireActiveId` で包む（`409 id_deleting` も返す）
   - それ以外の handler は `context.claims`（検証済みの Cookie、無ければ null）を受け取る。その ID が退会済みかは確かめていないので、要るなら `resolveAccount` を呼ぶ
   - ポータルだけが呼べる API（復旧コード、退会）は `portalOnly(...)` で包む。要 ID でもある API は `portalOnly(requireId(handler))` の順にする
@@ -74,7 +80,9 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
 - `vitest.config.ts` が実行のたびに鍵ペアを 3 つ生成し、binding として渡す。現在の署名鍵、ローテーションで退いた鍵（公開鍵だけ `ID_PUBLIC_KEYS` に残る）、未知の鍵。**秘密鍵をリポジトリに置かない**
 - 環境変数は `wrangler.jsonc` の先頭（ローカル用）を読み、`vitest.config.ts` の `miniflare.bindings` で開発環境の値に上書きしている
 - マイグレーションは `test/apply-migrations.ts`（setupFiles）が `applyD1Migrations` で適用する
-- handler は `worker.fetch(request, { ...env, ...overrides })` で直接呼ぶ。`CF-Connecting-IP` と env の一部を差し替えられるため。リクエストの組み立てと呼び出しの補助は `test/helpers.ts` にある
+- HTTP の API は `handleFetch(request, { ...env, ...overrides })` で直接呼ぶ（`test/helpers.ts` の `call`）。`CF-Connecting-IP` と env の一部を差し替え、偽の `GAME_*` binding を足せるため。リクエストの組み立ての補助も `test/helpers.ts` にある
+- RPC は `import { exports } from "cloudflare:workers"` の `exports.default` から呼ぶ。ゲームの `ID` binding と同じく、本物の RPC を通る。`IdPlatform.fetch` の配線も `test/entrypoint.test.ts` で `exports.default.fetch` を通して確かめる
+- 見えない文字（結合文字、異体字セレクタなど）は、ソースとテストに文字そのものを書かず `\u{3099}` の形で書く
 - Rate Limiting の binding はテストの間（ファイルをまたいでも）で数を共有し、数は実行の後も最長 60 秒残る。**固定の IP を書かない。** 同じ IP で何度も呼ぶテストは `uniqueIp()` で IP を作る（`apiRequest()` は呼ぶたびに `uniqueIp()` を使う）
 - テスト用の binding を足したら `test/env.d.ts` に型を足す
 
@@ -97,7 +105,7 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
 
 ## 進み具合（R1）
 
-- 済: Worker と D1 の雛形、`POST /api/id/session`、鍵の生成スクリプト、引き継ぎコード、復旧コード、引き継ぎ用トークンの入力、期限切れの行を消す定期実行、テスト
-- 未着手: 退会、ゲームとの RPC（`WorkerEntrypoint`）、ポータルとアカウント画面、検証用のテストベクター、`dev.kan-game.app` へのデプロイ（`kan-game-dev` の D1 の作成から）
+- 済: Worker と D1 の雛形、`POST /api/id/session`、鍵の生成スクリプト、引き継ぎコード、復旧コード、引き継ぎ用トークンの入力、退会、ゲームとの RPC（名前の取得と登録）、期限切れの行を消す定期実行、テスト
+- 未着手: ポータルとアカウント画面、検証用のテストベクター、`dev.kan-game.app` へのデプロイ（`kan-game-dev` の D1 の作成から）
 
 段階を進めたらこの節を更新する。
