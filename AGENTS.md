@@ -125,7 +125,8 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
 - 1 つのブラウザが同じ名前の Cookie を 2 つ持つことがある（host-only と `Domain=kan-game.app`）。先頭の 1 つだけを見ると、無効な方が有効な方を隠して毎回新しい ID を発行してしまうので、すべてを検証する
 - npm 11 は install script を承認制にしており、`npm install` で workerd と esbuild の postinstall が止められる。プラットフォーム別のバイナリは optional dependency として入るので、テストと `wrangler dev` は動く
 - エディタの TypeScript の診断が `tsconfig.json` の `types` を読み直さず、`Env` や `cloudflare:workers` が見つからないと出し続けることがある。`npm run typecheck` の結果を正とする
-- Workers の `Uint8Array.fromBase64` / `toBase64` は実行時に使えるが、TypeScript 5.9 の lib に型がない。`src/token.ts` はゲームが写すので型宣言を足さず、`btoa` / `atob` で base64url を扱っている
+  - TypeScript 7 の標準ライブラリの型は `node_modules/@typescript/typescript-<OS>-<CPU>/lib/` にある。エディタがこれを読めず、`Promise` や `Response` が見つからないと出すことがある。これも `npm run typecheck` の結果を正とする
+- Workers の `Uint8Array.fromBase64` / `toBase64` は実行時に使えるが、TypeScript 7 では型が lib の `esnext` にしかなく、`tsconfig.json` の `lib` は `ES2022`。`src/token.ts` はゲームが写すので、lib を変えたり型宣言を足したりせず、`btoa` / `atob` で base64url を扱っている
 - curl は `http://localhost` でも `Secure` の Cookie を送るので、ローカルの確認に使える
 - Chromium は `http://localhost` でも `__Secure-` の Cookie を保存する（2026-10-18 に Playwright で確認、期限は 400 日のまま）。Firefox と Safari は未確認
 - Playwright の MCP でブラウザを操作するとき、`page.once("dialog")` で確認ダイアログを処理すると、ツール側がダイアログを横取りして止まることがある。`browser.newContext()` で作ったページに `page.on("dialog", ...)` を付けると処理できる。新しいコンテキストは、別の端末に見立てるのにも使える

@@ -20,8 +20,8 @@
   "devDependencies": {
     "@cloudflare/vitest-plugin": "^1.4.4",
     "prettier": "^3.9.10",
-    "typescript": "^5.9.3",
-    "vitest": "^4.1.11",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5",
     "wrangler": "^4.151.1"
   }
 }
