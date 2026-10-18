@@ -64,7 +64,8 @@ export function sessionRequest(options: ApiRequestOptions = {}): Request {
  */
 export function call(
   request: Request,
-  overrides: Partial<Env> & Record<string, unknown> = {},
+  // Not Partial<Env>: a fake GAME_<NAME> is a plain object, not a Service.
+  overrides: Record<string, unknown> = {},
 ): Promise<Response> {
   return handleFetch(request, { ...env, ...overrides } as Env);
 }
