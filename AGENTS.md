@@ -132,13 +132,13 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
 
 ## 進み具合
 
-- 本番環境（R3）: 2026-10-18 に Worker `kan-game`、D1 `kan-game-prod`、カスタムドメイン `kan-game.app` を作った。`GAME_TAKO` は、TAKO-SEN が本番の Worker `tako` を出してから足す（`docs/DEPLOY_PROD.md` の 1 の手順 5）。告知（R4）までは、dev と本番の両方を `X-Robots-Tag: noindex` にしている
+- 本番環境（R3）: 2026-10-18 に Worker `kan-game`、D1 `kan-game-prod`、カスタムドメイン `kan-game.app` を作った。同日、TAKO-SEN が本番の Worker `tako` を出したので `GAME_TAKO` を足して出し直し、退会で `tako-prod` の `deleted_accounts` へ行が入ることを確かめた。予行の移行データ（旧 D1 の 11 人分）も取り込み済みで、R4 の前に空へ戻す（`docs/DEPLOY_PROD.md` の 4）。告知（R4）までは、dev と本番の両方を `X-Robots-Tag: noindex` にしている
 
 ### R1
 
 - 済: Worker と D1 の雛形、`POST /api/id/session`、鍵の生成スクリプト、引き継ぎコード、復旧コード、引き継ぎ用トークンの入力、退会、ゲームとの RPC（名前の取得と登録）、期限切れの行を消す定期実行と止まった退会のやり直し、検証用のテストベクター、テスト
 - `dev.kan-game.app` へのデプロイ: 2026-10-18 に済（API、ポータル、規約の下書き）
-- TAKO-SEN との接続（R2）: `env.dev` の `GAME_TAKO`（Worker `tako-dev` の entrypoint `GameService`）は 2026-10-18 から有効。dev のポータルで退会すると、`tako-dev` の D1 の `deleted_accounts` へ行が入ることを確かめた。R3 の本番は Worker `tako`（D1 `tako-prod`）の想定
+- TAKO-SEN との接続（R2）: `env.dev` の `GAME_TAKO`（Worker `tako-dev` の entrypoint `GameService`）は 2026-10-18 から有効。dev のポータルで退会すると、`tako-dev` の D1 の `deleted_accounts` へ行が入ることを確かめた。本番の Worker `tako`（D1 `tako-prod`）とのつなぎ方は、上の「本番環境（R3）」にある
   - binding の先の Worker が無いまま kan/game を出すと、退会が毎回 `503 deletion_incomplete` になる。ゲームを足すときは、ゲームの Worker を先に出す
 - ポータルとアカウント画面: 2026-10-18 に済。ローカルで、Playwright の 3 つのコンテキストを端末に見立てて、引き継ぎ、復旧、退会を確認した
 - 利用規約とプライバシーポリシー: 2026-10-18 に下書きを書いた。利用者の確認と公開（R4 の前）が残る
