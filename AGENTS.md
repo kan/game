@@ -49,7 +49,7 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
 | `src/migration.ts`                  | 引き継ぎ用トークンの入力。トークンの登録は移行の作業で D1 へ直接行う                                                                                                                                                                                                                              |
 | `src/maintenance.ts`                | 期限切れの引き継ぎコードと引き継ぎ用トークンを消す（1 日 1 回の定期実行）                                                                                                                                                                                                                         |
 | `migrations/`                       | D1 のスキーマ。設計書の全テーブルを `0001_initial.sql` に持つ                                                                                                                                                                                                                                     |
-| `public/`                           | ポータルの画面（Workers Static Assets）。トップ（`index.html`）、アカウント画面（`account.html`）、利用規約とプライバシーポリシー（準備中）、404、`_headers`（CSP など）                                                                                                                          |
+| `public/`                           | ポータルの画面（Workers Static Assets）。トップ（`index.html`）、アカウント画面（`account.html`）、利用規約とプライバシーポリシー（下書き）、404、`_headers`（CSP など）                                                                                                                          |
 | `public/favicon.svg` ほか           | アイコン（デフォルメしたゲームコントローラ）。`favicon.svg` が元で、`favicon-32.png` と `apple-touch-icon.png`（180px）はそこから描き出したもの。ヘッダーのロゴにも `favicon.svg` を使う。描き直したら PNG も作り直す                                                                             |
 | `public/assets/lib.js`              | 画面の処理のうち DOM に触れない部分（API の呼び出し、エラーの文言、コードの区切り、入力したコードの種類の判定）。`test/portal-lib.test.ts` で試す。今はポータル専用で、ゲームへ写す前提のファイル（`src/token.ts` など）とは扱いが違う                                                            |
 | `public/assets/account.js`          | アカウント画面の動作（引き継ぎコード、復旧コード、コードの入力、退会）                                                                                                                                                                                                                            |
@@ -85,7 +85,8 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
   - **インラインの `<script>` と `style` 属性を書かない。** `public/_headers` の CSP が `'self'` 以外を許さないため
   - ID（UUID）を画面に出さない。TAKO-SEN と同じく、認証の ID は表示しない
   - 画面は起動時とオフラインからの復帰時に `POST /api/id/session` を呼ぶ（`lib.js` の `startSession`）
-  - 利用規約とプライバシーポリシーは本文を別に用意する（R4 の前提）。エージェントが法的な文面を書いて公開しない
+  - 利用規約（`terms.html`）とプライバシーポリシー（`privacy.html`）は下書きの状態で、冒頭に「公開前の下書き」と出している。**下書きの表示を外して制定日を入れる（公開する）のは、利用者が承認してから。** 公開は R4 の前提
+  - プライバシーポリシーは実装の事実（Cookie の名前と期限、保存する項目、公開される項目、退会で消えるものと残るもの、ログとバックアップの保持期間）を書いている。これらを変えたら、ポリシーの該当箇所も直す。ゲームを足したら「ゲームごとの記録」と「公開される情報」に、そのゲームの分を足す
 - 時刻は Unix エポックからのミリ秒の整数で D1 に持つ。JWT の `iat` と `exp` だけは秒
 - 鍵は `loadKeys(env)` から取る。リクエストごとに `importKey` しない
 - 頻度の制限は IP（`CF-Connecting-IP`）単位。発行の制限は新しい ID を作るときだけ数え、延長では数えない
@@ -126,7 +127,8 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
 
 - 済: Worker と D1 の雛形、`POST /api/id/session`、鍵の生成スクリプト、引き継ぎコード、復旧コード、引き継ぎ用トークンの入力、退会、ゲームとの RPC（名前の取得と登録）、期限切れの行を消す定期実行と止まった退会のやり直し、検証用のテストベクター、テスト
 - `dev.kan-game.app` へのデプロイ: 2026-10-18 に済（API だけ。`GAMES` は空）
-- ポータルとアカウント画面: 2026-10-18 に済（利用規約とプライバシーポリシーは準備中のページだけ）。ローカルで、Playwright の 3 つのコンテキストを端末に見立てて、引き継ぎ、復旧、退会を確認した
-- 未着手: 実機の 2 端末（iPhone の Safari を含む）での確認、Firefox と Safari が `__Secure-` の Cookie を `http://localhost` で受け付けるかの確認、利用規約とプライバシーポリシーの本文
+- ポータルとアカウント画面: 2026-10-18 に済。ローカルで、Playwright の 3 つのコンテキストを端末に見立てて、引き継ぎ、復旧、退会を確認した
+- 利用規約とプライバシーポリシー: 2026-10-18 に下書きを書いた。利用者の確認と公開（R4 の前）が残る
+- 未着手: 実機の 2 端末（iPhone の Safari を含む）での確認（利用者が進めている）、Firefox と Safari が `__Secure-` の Cookie を `http://localhost` で受け付けるかの確認
 
 段階を進めたらこの節を更新する。

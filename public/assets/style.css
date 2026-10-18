@@ -211,6 +211,24 @@ input:not([type]) {
   background: var(--error-bg);
 }
 
+/* Long documents: terms and privacy. */
+.document h2 {
+  margin-top: 2rem;
+}
+
+.document h3 {
+  font-size: 1rem;
+  margin-top: 1.5rem;
+}
+
+.document li {
+  margin: 4px 0;
+}
+
+.document code {
+  overflow-wrap: anywhere;
+}
+
 [hidden] {
   display: none !important;
 }
