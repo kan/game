@@ -10,9 +10,27 @@ export function json(
   return response;
 }
 
+/**
+ * Every error code the ID APIs return as `{ "error": code }`. The portal shows
+ * a message for each (public/assets/lib.js); test/portal-lib.test.ts checks
+ * that none is missing.
+ */
+export type ErrorCode =
+  | "invalid_code"
+  | "invalid_request"
+  | "no_id"
+  | "origin_not_allowed"
+  | "not_found"
+  | "method_not_allowed"
+  | "id_deleting"
+  | "id_deleted"
+  | "rate_limited"
+  | "deletion_misconfigured"
+  | "deletion_incomplete";
+
 export function error(
   status: number,
-  code: string,
+  code: ErrorCode,
   headers?: HeadersInit,
 ): Response {
   return json({ error: code }, status, headers);

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy:dev": "wrangler deploy --env dev",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.public.json",
     "test": "vitest run",
     "cf-typegen": "wrangler types --strict-vars=false",
     "generate-key": "node scripts/generate-signing-key.mjs",

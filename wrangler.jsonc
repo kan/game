@@ -4,6 +4,13 @@
   "name": "kan-game-local",
   "main": "./src/index.ts",
   "compatibility_date": "2026-10-01",
+  // The portal's pages. Only /api/* reaches the Worker. Inherited by env.dev.
+  "assets": {
+    "directory": "./public",
+    "run_worker_first": ["/api/*"],
+    "html_handling": "drop-trailing-slash",
+    "not_found_handling": "404-page",
+  },
   "d1_databases": [
     {
       "binding": "DB",

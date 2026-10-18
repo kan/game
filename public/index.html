@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>kan-game.app</title>
+    <meta name="description" content="kan-game.app のゲームの一覧" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="stylesheet" href="/assets/style.css" />
+    <script type="module" src="/assets/portal.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/"
+        ><img src="/favicon.svg" alt="" width="28" height="28" />kan-game.app</a
+      >
+      <nav><a href="/account">アカウント</a></nav>
+    </header>
+
+    <main>
+      <h1>ゲーム</h1>
+      <ul class="games">
+        <li>
+          <a
+            class="game"
+            data-game="tako-sen"
+            href="https://tako.kan-game.app/"
+          >
+            <span class="game-title">TAKO-SEN</span>
+            <span class="game-description"
+              >デフォルメされたタコがテーマの、Star Battle
+              系のロジックパズル</span
+            >
+          </a>
+        </li>
+        <li>
+          <a class="game" href="https://vegtab.app/" rel="noopener">
+            <span class="game-title">vegtab</span>
+            <span class="game-description">vegtab.app で開きます</span>
+          </a>
+        </li>
+      </ul>
+
+      <p>
+        kan-game.app のゲームは、この端末の匿名の ID
+        で記録を保存します。別の端末への引き継ぎと退会は
+        <a href="/account">アカウント</a> の画面から行えます。
+      </p>
+    </main>
+
+    <footer class="site-footer">
+      <a href="/terms">利用規約</a>
+      <a href="/privacy">プライバシーポリシー</a>
+    </footer>
+  </body>
+</html>

@@ -12,7 +12,9 @@
     "isolatedModules": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
-    "noEmit": true
+    "noEmit": true,
+    // Tests import public/assets/lib.js; tsconfig.public.json checks it.
+    "allowJs": true
   },
   "include": ["src/**/*.ts", "test/**/*.ts", "vitest.config.ts"]
 }

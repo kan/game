@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>アカウント - kan-game.app</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="stylesheet" href="/assets/style.css" />
+    <script type="module" src="/assets/account.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/"
+        ><img src="/favicon.svg" alt="" width="28" height="28" />kan-game.app</a
+      >
+      <nav><a href="/account" aria-current="page">アカウント</a></nav>
+    </header>
+
+    <main>
+      <h1>アカウント</h1>
+      <p id="loading">読み込んでいます…</p>
+      <p id="fatal" class="notice error" hidden></p>
+
+      <div id="account" hidden>
+        <section aria-labelledby="profile-heading">
+          <h2 id="profile-heading">この端末の ID</h2>
+          <p>
+            この端末には、メールアドレスなどを使わない匿名の ID
+            があります。kan-game.app のゲームはこの ID で記録を保存します。
+          </p>
+          <p id="name-line"></p>
+          <p id="deleting-notice" class="notice warning" hidden>
+            退会の途中で止まっています。下の「退会する」をもう一度押してください。押さなくても、時間をおいて自動でやり直します。
+          </p>
+        </section>
+
+        <section aria-labelledby="transfer-heading" data-active-only>
+          <h2 id="transfer-heading">別の端末へ引き継ぐ</h2>
+          <p>
+            引き継ぎコードを発行し、10
+            分以内に別の端末のこの画面か、ゲームの設定画面で入力してください。コードは
+            1 回だけ使えます。
+          </p>
+          <button type="button" id="issue-transfer">
+            引き継ぎコードを発行する
+          </button>
+          <div id="transfer-result" class="code-box" hidden>
+            <p class="code" id="transfer-code"></p>
+            <p>残り <span id="transfer-remaining"></span></p>
+          </div>
+        </section>
+
+        <section aria-labelledby="recovery-heading" data-active-only>
+          <h2 id="recovery-heading">復旧コード</h2>
+          <p>
+            この端末のデータを消したときに ID へ戻るための、ただ 1
+            つの手段です。発行したら、紙に書くか、パスワード管理アプリに保存してください。コードはこの画面で一度だけ表示されます。
+          </p>
+          <p>発行し直すと、前のコードは使えなくなります。</p>
+          <button type="button" id="issue-recovery">
+            復旧コードを発行する
+          </button>
+          <div id="recovery-result" class="code-box" hidden>
+            <p class="code" id="recovery-code"></p>
+            <button type="button" id="copy-recovery">コピーする</button>
+            <p>この画面を離れると、もう表示できません。</p>
+          </div>
+        </section>
+
+        <section aria-labelledby="redeem-heading">
+          <h2 id="redeem-heading">コードを入力して ID を切り替える</h2>
+          <p>
+            別の端末で発行した引き継ぎコード、または控えておいた復旧コードを入力すると、この端末の
+            ID がそのコードの ID に切り替わります。今の ID
+            の記録は、切り替え先へまとめられません。
+          </p>
+          <form id="redeem-form">
+            <label for="redeem-code">コード</label>
+            <input
+              id="redeem-code"
+              name="code"
+              autocomplete="off"
+              autocapitalize="characters"
+              spellcheck="false"
+              required
+            />
+            <button type="submit" id="redeem-submit">切り替える</button>
+          </form>
+        </section>
+
+        <section aria-labelledby="delete-heading">
+          <h2 id="delete-heading">退会</h2>
+          <p>
+            ID
+            と名前、すべてのゲームの記録を削除します。ゲームごとの削除はできません。削除した記録は元に戻せません。
+          </p>
+          <label class="check">
+            <input type="checkbox" id="delete-confirm" />
+            すべての記録が削除されることを理解しました
+          </label>
+          <button type="button" id="delete-account" class="danger" disabled>
+            退会する
+          </button>
+        </section>
+      </div>
+
+      <p id="deleted" class="notice" hidden>
+        退会しました。この端末で次に kan-game.app を開くと、新しい ID
+        が作られます。
+      </p>
+
+      <p
+        id="message"
+        class="notice"
+        role="status"
+        aria-live="polite"
+        hidden
+      ></p>
+    </main>
+
+    <footer class="site-footer">
+      <a href="/terms">利用規約</a>
+      <a href="/privacy">プライバシーポリシー</a>
+    </footer>
+  </body>
+</html>

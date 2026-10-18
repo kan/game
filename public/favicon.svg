@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>kan-game.app</title>
+  <rect width="64" height="64" rx="14" fill="#1f5fbf"/>
+  <path d="M21 16h22c8 0 12 5 14 13l3 11c2 10-10 15-16 7l-5-7H25l-5 7C14 55 2 50 4 40l3-11c2-8 6-13 14-13Z" fill="#fff"/>
+  <path d="M17 23h6v6h6v6h-6v6h-6v-6h-6v-6h6Z" fill="#1f5fbf"/>
+  <circle cx="43" cy="26" r="5" fill="#ff6b6b"/>
+  <circle cx="50" cy="36" r="5" fill="#ffc23d"/>
+</svg>

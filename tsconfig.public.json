@@ -1,0 +1,11 @@
+{
+  // Type-checks the portal's browser scripts (JSDoc in plain JavaScript):
+  // the Worker's settings with DOM types instead of the Workers runtime.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": [],
+    "checkJs": true
+  },
+  "include": ["public/**/*.js"]
+}

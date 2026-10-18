@@ -5,24 +5,26 @@ kan-game.app のポータルと ID 基盤の Worker。
 
 ## 構成
 
-| パス                               | 内容                                                                         |
-| ---------------------------------- | ---------------------------------------------------------------------------- |
-| `src/index.ts`                     | Worker の本体（HTTP、定期実行、ゲーム向けの RPC）                            |
-| `src/router.ts`                    | `/api/id/*` のルーター                                                       |
-| `src/names.ts`                     | 名前の規則と、名前の取得と登録（RPC）                                        |
-| `src/account.ts`                   | 退会（止まった退会の定期実行でのやり直しを含む）                             |
-| `src/rpc.ts`                       | ゲームとの RPC の契約の型。各ゲームはこのファイルを写して使う                |
-| `src/session.ts`                   | `POST /api/id/session`（ID の発行と延長）                                    |
-| `src/transfer.ts`                  | 引き継ぎコードの発行と入力                                                   |
-| `src/recovery.ts`                  | 復旧コードの発行と入力（ポータル限定）                                       |
-| `src/migration.ts`                 | 引き継ぎ用トークンの入力                                                     |
-| `src/redeem.ts`                    | 入力の API に共通の流れ                                                      |
-| `src/maintenance.ts`               | 期限切れの行を消す定期実行                                                   |
-| `src/id.ts`                        | Cookie からの ID の読み取りと、Cookie を設定する応答の組み立て               |
-| `src/token.ts`                     | Cookie の JWT（ES256）の署名と検証。各ゲームはこのファイルを写して検証に使う |
-| `migrations/`                      | D1 のスキーマ                                                                |
-| `scripts/generate-signing-key.mjs` | 署名鍵（P-256）の生成                                                        |
-| `test-vectors/id-token.json`       | ゲームが写した `src/token.ts` を照合するテストベクター                       |
+| パス                               | 内容                                                                                     |
+| ---------------------------------- | ---------------------------------------------------------------------------------------- |
+| `src/index.ts`                     | Worker の本体（HTTP、定期実行、ゲーム向けの RPC）                                        |
+| `src/router.ts`                    | `/api/id/*` のルーター                                                                   |
+| `src/names.ts`                     | 名前の規則と、名前の取得と登録（RPC）                                                    |
+| `src/account.ts`                   | 退会（止まった退会の定期実行でのやり直しを含む）                                         |
+| `src/rpc.ts`                       | ゲームとの RPC の契約の型。各ゲームはこのファイルを写して使う                            |
+| `src/session.ts`                   | `POST /api/id/session`（ID の発行と延長）                                                |
+| `src/transfer.ts`                  | 引き継ぎコードの発行と入力                                                               |
+| `src/recovery.ts`                  | 復旧コードの発行と入力（ポータル限定）                                                   |
+| `src/migration.ts`                 | 引き継ぎ用トークンの入力                                                                 |
+| `src/redeem.ts`                    | 入力の API に共通の流れ                                                                  |
+| `src/maintenance.ts`               | 期限切れの行を消す定期実行                                                               |
+| `src/id.ts`                        | Cookie からの ID の読み取りと、Cookie を設定する応答の組み立て                           |
+| `src/token.ts`                     | Cookie の JWT（ES256）の署名と検証。各ゲームはこのファイルを写して検証に使う             |
+| `migrations/`                      | D1 のスキーマ                                                                            |
+| `public/`                          | ポータルの画面。トップ、アカウント画面、利用規約とプライバシーポリシー（どちらも準備中） |
+| `public/assets/`                   | 画面の JavaScript（`lib.js` / `portal.js` / `account.js`）と CSS                         |
+| `scripts/generate-signing-key.mjs` | 署名鍵（P-256）の生成                                                                    |
+| `test-vectors/id-token.json`       | ゲームが写した `src/token.ts` を照合するテストベクター                                   |
 
 ## ゲームから使う
 
@@ -37,8 +39,11 @@ kan-game.app のポータルと ID 基盤の Worker。
 npm install
 npm run generate-key -- --dev-vars   # .dev.vars にローカル用の鍵を書く
 npx wrangler d1 migrations apply DB --local
-npm run dev                          # http://localhost:8787
+npm run dev                          # http://localhost:8787（ポータル）、/account（アカウント画面）
 ```
+
+画面は `public/` の静的ファイルで、ビルドは要らない。編集して読み込み直せば反映される。
+画面は `http://localhost:8787` で開く。`127.0.0.1` や別のポートで開くと、オリジンが `PORTAL_ORIGIN` と合わず、API が `origin_not_allowed` で断られる（変えるなら `.dev.vars` で `PORTAL_ORIGIN` を上書きする）。
 
 `wrangler.jsonc` の先頭の設定がローカル用で、Cookie は `localhost` だけに付く。
 別のポートで動かすゲームから ID の API を呼ぶときは、そのオリジン（例 `http://localhost:5173`）を `.dev.vars` の `ALLOWED_ORIGINS` に書く。
@@ -47,7 +52,7 @@ npm run dev                          # http://localhost:8787
 
 ```sh
 npm test            # @cloudflare/vitest-plugin でローカルの D1 に対して実行
-npm run typecheck
+npm run typecheck   # Worker（tsconfig.json）と画面の JavaScript（tsconfig.public.json）
 ```
 
 テスト用の鍵は実行のたびに `vitest.config.ts` が生成する。

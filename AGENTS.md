@@ -49,6 +49,10 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
 | `src/migration.ts`                  | 引き継ぎ用トークンの入力。トークンの登録は移行の作業で D1 へ直接行う                                                                                                                                                                                                                              |
 | `src/maintenance.ts`                | 期限切れの引き継ぎコードと引き継ぎ用トークンを消す（1 日 1 回の定期実行）                                                                                                                                                                                                                         |
 | `migrations/`                       | D1 のスキーマ。設計書の全テーブルを `0001_initial.sql` に持つ                                                                                                                                                                                                                                     |
+| `public/`                           | ポータルの画面（Workers Static Assets）。トップ（`index.html`）、アカウント画面（`account.html`）、利用規約とプライバシーポリシー（準備中）、404、`_headers`（CSP など）                                                                                                                          |
+| `public/favicon.svg` ほか           | アイコン（デフォルメしたゲームコントローラ）。`favicon.svg` が元で、`favicon-32.png` と `apple-touch-icon.png`（180px）はそこから描き出したもの。ヘッダーのロゴにも `favicon.svg` を使う。描き直したら PNG も作り直す                                                                             |
+| `public/assets/lib.js`              | 画面の処理のうち DOM に触れない部分（API の呼び出し、エラーの文言、コードの区切り、入力したコードの種類の判定）。`test/portal-lib.test.ts` で試す。今はポータル専用で、ゲームへ写す前提のファイル（`src/token.ts` など）とは扱いが違う                                                            |
+| `public/assets/account.js`          | アカウント画面の動作（引き継ぎコード、復旧コード、コードの入力、退会）                                                                                                                                                                                                                            |
 | `scripts/generate-signing-key.mjs`  | 鍵の生成                                                                                                                                                                                                                                                                                          |
 | `scripts/generate-test-vectors.mjs` | `test-vectors/id-token.json` の生成（`npm run generate-vectors`）。いつ実行するかは「実装の規約」を参照                                                                                                                                                                                           |
 | `test-vectors/id-token.json`        | ゲームが写した `src/token.ts` を照合するテストベクター。照合の仕方は `test/vectors.test.ts`                                                                                                                                                                                                       |
@@ -74,6 +78,14 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
 - 入力の API（redeem）の頻度制限は、1 つの binding `REDEEM_RATE_LIMITER` を共有し、キーを `<API 名>:<IP>` にして API ごとに数える（設計書の上限が 3 種とも 5 回 / 60 秒のため）。制限の確認は本文を読む前に行い、誤ったコードの試行も数える
 - 利用者が入力するコードは `src/codes.ts` の `randomCode` と `normalizeCode` で作り、受け付ける
 - エラーは `error(status, code)` で `{ "error": "<code>" }` を返す。コードは設計書の名前（`origin_not_allowed`、`no_id`、`rate_limited` など）に合わせる
+  - エラーのコードは `src/http.ts` の型 `ErrorCode` にまとめてある。コードを足すときは `ErrorCode` に足す。画面の文言（`public/assets/lib.js` の `ERROR_MESSAGES`）が無いと、`test/portal-lib.test.ts` の型検査が落ちて気付ける
+  - 入力したコードの正規化（区切りや全角の扱い）と長さを変えたら、`lib.js` の `redeemPath` も合わせる。`test/portal-lib.test.ts` が、サーバーの `normalizeCode` と判定が一致するかを確かめている
+- ポータルの画面
+  - フレームワークとビルドを使わず、素の HTML と JavaScript（ES modules）で書く。型は JSDoc で付け、`tsconfig.public.json` で検査する（`npm run typecheck` が両方を回す）
+  - **インラインの `<script>` と `style` 属性を書かない。** `public/_headers` の CSP が `'self'` 以外を許さないため
+  - ID（UUID）を画面に出さない。TAKO-SEN と同じく、認証の ID は表示しない
+  - 画面は起動時とオフラインからの復帰時に `POST /api/id/session` を呼ぶ（`lib.js` の `startSession`）
+  - 利用規約とプライバシーポリシーは本文を別に用意する（R4 の前提）。エージェントが法的な文面を書いて公開しない
 - 時刻は Unix エポックからのミリ秒の整数で D1 に持つ。JWT の `iat` と `exp` だけは秒
 - 鍵は `loadKeys(env)` から取る。リクエストごとに `importKey` しない
 - 頻度の制限は IP（`CF-Connecting-IP`）単位。発行の制限は新しい ID を作るときだけ数え、延長では数えない
@@ -105,12 +117,16 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
 - npm 11 は install script を承認制にしており、`npm install` で workerd と esbuild の postinstall が止められる。プラットフォーム別のバイナリは optional dependency として入るので、テストと `wrangler dev` は動く
 - エディタの TypeScript の診断が `tsconfig.json` の `types` を読み直さず、`Env` や `cloudflare:workers` が見つからないと出し続けることがある。`npm run typecheck` の結果を正とする
 - Workers の `Uint8Array.fromBase64` / `toBase64` は実行時に使えるが、TypeScript 5.9 の lib に型がない。`src/token.ts` はゲームが写すので型宣言を足さず、`btoa` / `atob` で base64url を扱っている
-- curl は `http://localhost` でも `Secure` の Cookie を送るので、ローカルの確認に使える。ブラウザが `__Secure-` の Cookie を `http://localhost` で受け付けるかは未確認（設計書「ローカルの開発」で R1 に確かめるとしている）
+- curl は `http://localhost` でも `Secure` の Cookie を送るので、ローカルの確認に使える
+- Chromium は `http://localhost` でも `__Secure-` の Cookie を保存する（2026-10-18 に Playwright で確認、期限は 400 日のまま）。Firefox と Safari は未確認
+- Playwright の MCP でブラウザを操作するとき、`page.once("dialog")` で確認ダイアログを処理すると、ツール側がダイアログを横取りして止まることがある。`browser.newContext()` で作ったページに `page.on("dialog", ...)` を付けると処理できる。新しいコンテキストは、別の端末に見立てるのにも使える
+- Playwright の MCP は、スクリーンショットなどを repo の `.playwright-mcp/` にしか書けない（git の対象外にしてある）
 
 ## 進み具合（R1）
 
 - 済: Worker と D1 の雛形、`POST /api/id/session`、鍵の生成スクリプト、引き継ぎコード、復旧コード、引き継ぎ用トークンの入力、退会、ゲームとの RPC（名前の取得と登録）、期限切れの行を消す定期実行と止まった退会のやり直し、検証用のテストベクター、テスト
 - `dev.kan-game.app` へのデプロイ: 2026-10-18 に済（API だけ。`GAMES` は空）
-- 未着手: ポータルとアカウント画面、2 端末（iPhone の Safari を含む）での確認、ブラウザが `__Secure-` の Cookie を `http://localhost` で受け付けるかの確認
+- ポータルとアカウント画面: 2026-10-18 に済（利用規約とプライバシーポリシーは準備中のページだけ）。ローカルで、Playwright の 3 つのコンテキストを端末に見立てて、引き継ぎ、復旧、退会を確認した
+- 未着手: 実機の 2 端末（iPhone の Safari を含む）での確認、Firefox と Safari が `__Secure-` の Cookie を `http://localhost` で受け付けるかの確認、利用規約とプライバシーポリシーの本文
 
 段階を進めたらこの節を更新する。
