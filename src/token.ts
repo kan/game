@@ -82,9 +82,14 @@ export async function signIdToken(
   return `${input}.${encodeBase64Url(new Uint8Array(signature))}`;
 }
 
+/** How far in the future `iat` may be, for clocks that are slightly apart. */
+const CLOCK_SKEW_SECONDS = 5 * 60;
+
 /**
  * Returns the claims of a valid token, or null. Checks the signature, `alg`,
- * that `kid` names a known key, `iss`, `exp`, and that `sub` is a UUID v4.
+ * `typ`, that `kid` names a known key, `iss`, `exp`, that `iat` is at most
+ * 5 minutes in the future and at most the lifetime before `exp`, that both
+ * are whole seconds, and that `sub` is a UUID v4.
  */
 export async function verifyIdToken(
   token: string,
@@ -96,7 +101,12 @@ export async function verifyIdToken(
   if (parts.length !== 3) return null;
   const [encodedHeader, encodedPayload, encodedSignature] = parts;
   const header = decodeJson(encodedHeader);
-  if (header?.alg !== "ES256" || typeof header.kid !== "string") return null;
+  if (
+    header?.alg !== "ES256" ||
+    header.typ !== "JWT" ||
+    typeof header.kid !== "string"
+  )
+    return null;
   const verificationKey = keys.find((key) => key.kid === header.kid);
   if (!verificationKey) return null;
   const signature = decodeBase64Url(encodedSignature);
@@ -110,14 +120,19 @@ export async function verifyIdToken(
   );
   if (!valid) return null;
   const payload = decodeJson(encodedPayload);
+  const now = Math.floor(nowMs / 1000);
   if (
     !payload ||
     typeof payload.sub !== "string" ||
     !UUID.test(payload.sub) ||
     payload.iss !== issuer ||
+    !Number.isSafeInteger(payload.iat) ||
+    !Number.isSafeInteger(payload.exp) ||
     typeof payload.iat !== "number" ||
     typeof payload.exp !== "number" ||
-    payload.exp <= Math.floor(nowMs / 1000)
+    payload.exp <= now ||
+    payload.iat > now + CLOCK_SKEW_SECONDS ||
+    payload.exp - payload.iat > ID_TOKEN_LIFETIME_SECONDS
   )
     return null;
   return {
@@ -132,6 +147,12 @@ export async function verifyIdToken(
  * The claims of the first valid ID cookie in a `Cookie` header, or null.
  * Every cookie with the name is tried: a browser can hold both a host-only and
  * a `Domain=kan-game.app` copy, and an invalid one must not hide a valid one.
+ *
+ * There is deliberately no limit on how many are tried. With one, invalid
+ * copies sent first (a script on any subdomain can add some with a longer
+ * Path) would hide the real cookie, a new ID would be issued over it, and the
+ * player would lose theirs. The 128 KB request header limit bounds the work
+ * to a few hundred signature checks.
  */
 export async function verifyIdCookie(
   header: string | null,

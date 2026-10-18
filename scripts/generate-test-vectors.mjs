@@ -82,6 +82,11 @@ const expiresAfterNow = await sign(
   NOW - lifetimeMs + 1000,
 );
 
+const issuedAtSkew = await sign(known.signing, claims, NOW + 300_000);
+const unknownKidToken = await sign(unknown.signing, claims, NOW - DAY);
+// Reaches the signature check: a known kid and a well-formed 64-byte signature.
+const forgedKnownKid = withHeader(unknownKidToken, header);
+
 const tokenCases = [
   { name: "valid", token: valid, expected: claimsOf(valid) },
   {
@@ -115,15 +120,20 @@ const tokenCases = [
   },
   {
     name: "unknown kid",
-    token: await sign(unknown.signing, { sub: SUB, iss: ISSUER }, NOW - DAY),
+    token: unknownKidToken,
     expected: null,
   },
   {
     name: "known kid, signed by another key",
-    token: withHeader(
-      await sign(unknown.signing, { sub: SUB, iss: ISSUER }, NOW - DAY),
-      { alg: "ES256", typ: "JWT", kid: "vector-key" },
-    ),
+    token: forgedKnownKid,
+    expected: null,
+  },
+  {
+    name: "iat is not a whole number of seconds",
+    token: await signRaw(known.signing, header, {
+      ...claimsOf(valid),
+      iat: claimsOf(valid).iat + 0.5,
+    }),
     expected: null,
   },
   {
@@ -175,6 +185,35 @@ const tokenCases = [
     expected: null,
   },
   {
+    name: "no typ",
+    token: await signRaw(
+      known.signing,
+      { alg: "ES256", kid: "vector-key" },
+      claimsOf(valid),
+    ),
+    expected: null,
+  },
+  {
+    name: "iat 5 minutes after now (allowed clock skew)",
+    token: issuedAtSkew,
+    expected: claimsOf(issuedAtSkew),
+  },
+  {
+    name: "iat 5 minutes and 1 second after now",
+    token: await sign(known.signing, claims, NOW + 301_000),
+    expected: null,
+  },
+  {
+    name: "exp more than 400 days after iat",
+    token: await signRaw(known.signing, header, {
+      sub: SUB,
+      iss: ISSUER,
+      iat: (NOW - DAY) / 1000,
+      exp: (NOW - DAY) / 1000 + ID_TOKEN_LIFETIME_SECONDS + 1,
+    }),
+    expected: null,
+  },
+  {
     name: "signature one byte short",
     token: `${validHeader}.${validPayload}.${Buffer.from(validSignature, "base64url").subarray(0, 63).toString("base64url")}`,
     expected: null,
@@ -207,6 +246,17 @@ const cookieCases = [
   {
     name: "the valid copy before an invalid one",
     header: `${COOKIE}=${valid}; ${COOKIE}=stale`,
+    expected: SUB,
+  },
+  {
+    // No limit on copies tried: invalid ones sent first must not hide it.
+    name: "the valid copy after many invalid ones, some signed by an unknown key",
+    header: [
+      ...[1, 2, 3, 4, 5].map((n) => `${COOKIE}=stale${n}`),
+      `${COOKIE}=${unknownKidToken}`,
+      `${COOKIE}=${forgedKnownKid}`,
+      `${COOKIE}=${valid}`,
+    ].join("; "),
     expected: SUB,
   },
   {
