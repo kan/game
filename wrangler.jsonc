@@ -114,5 +114,46 @@
         "required": ["ID_SIGNING_KEY"],
       },
     },
+    // Production (kan-game.app). See docs/DEPLOY_PROD.md.
+    "production": {
+      "name": "kan-game",
+      "routes": [{ "pattern": "kan-game.app", "custom_domain": true }],
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "kan-game-prod",
+          "database_id": "9c10d958-7e52-4632-aa17-b77bd0359554",
+          "migrations_dir": "migrations",
+        },
+      ],
+      "ratelimits": [
+        {
+          "name": "ISSUE_RATE_LIMITER",
+          "namespace_id": "1201",
+          "simple": { "limit": 10, "period": 60 },
+        },
+        {
+          "name": "REDEEM_RATE_LIMITER",
+          "namespace_id": "1202",
+          "simple": { "limit": 5, "period": 60 },
+        },
+      ],
+      // GAME_TAKO (service "tako", entrypoint "GameService") is added once
+      // TAKO-SEN's production Worker is deployed; see docs/DEPLOY_PROD.md.
+      "vars": {
+        "COOKIE_NAME": "__Secure-kg_id",
+        "COOKIE_DOMAIN": "kan-game.app",
+        "ISSUER": "kan-game.app",
+        "ALLOWED_ORIGINS": "https://tako.kan-game.app",
+        "PORTAL_ORIGIN": "https://kan-game.app",
+        "GAMES": "",
+        // JSON array of public JWKs, each with kid. To rotate, follow
+        // docs/ID_DESIGN.md「鍵の管理」.
+        "ID_PUBLIC_KEYS": "[{\"kid\":\"2026-10-18-ccfc63\",\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"ddT7jKLdotzN141EdW32MjeKrySOCqm_OGKRbA27NBY\",\"y\":\"UR7l_tKX9mUzRzJElH_IFWQ36a0PggvU803FVXI_yqk\"}]",
+      },
+      "secrets": {
+        "required": ["ID_SIGNING_KEY"],
+      },
+    },
   },
 }

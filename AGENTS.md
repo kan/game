@@ -11,6 +11,7 @@ kan-game.app のポータルと、各ゲームが共通に使う匿名 ID の基
 - 仕様をこのファイルへ書き写さない。このファイルにはコードの構成、規約、開発上の知見だけを書く
 - 設計書にない判断を実装で加えたら、設計書の該当箇所に「（本書で追加）」と付けて追記する（例: 退会済みの ID への `410 id_deleted`）
 - 実装の都合で設計書と食い違いそうなときは、勝手に方針を変えずに利用者へ確認する
+- 本番環境（`kan-game.app`）の作成、更新、移行データの取り込み、R4 より前に空へ戻す手順は [`docs/DEPLOY_PROD.md`](docs/DEPLOY_PROD.md) にある。**本番への操作（デプロイ、D1 への書き込み、secret の登録）は、利用者の承認を得てから行う**
 
 ## 技術構成とコマンド
 
@@ -129,7 +130,11 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
 - Playwright の MCP でブラウザを操作するとき、`page.once("dialog")` で確認ダイアログを処理すると、ツール側がダイアログを横取りして止まることがある。`browser.newContext()` で作ったページに `page.on("dialog", ...)` を付けると処理できる。新しいコンテキストは、別の端末に見立てるのにも使える
 - Playwright の MCP は、スクリーンショットなどを repo の `.playwright-mcp/` にしか書けない（git の対象外にしてある）
 
-## 進み具合（R1）
+## 進み具合
+
+- 本番環境（R3）: 2026-10-18 に Worker `kan-game`、D1 `kan-game-prod`、カスタムドメイン `kan-game.app` を作った。`GAME_TAKO` は、TAKO-SEN が本番の Worker `tako` を出してから足す（`docs/DEPLOY_PROD.md` の 1 の手順 5）。告知（R4）までは、dev と本番の両方を `X-Robots-Tag: noindex` にしている
+
+### R1
 
 - 済: Worker と D1 の雛形、`POST /api/id/session`、鍵の生成スクリプト、引き継ぎコード、復旧コード、引き継ぎ用トークンの入力、退会、ゲームとの RPC（名前の取得と登録）、期限切れの行を消す定期実行と止まった退会のやり直し、検証用のテストベクター、テスト
 - `dev.kan-game.app` へのデプロイ: 2026-10-18 に済（API、ポータル、規約の下書き）
