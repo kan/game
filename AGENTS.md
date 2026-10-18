@@ -56,6 +56,7 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
 | `scripts/generate-signing-key.mjs`  | 鍵の生成                                                                                                                                                                                                                                                                                          |
 | `scripts/generate-test-vectors.mjs` | `test-vectors/id-token.json` の生成（`npm run generate-vectors`）。いつ実行するかは「実装の規約」を参照                                                                                                                                                                                           |
 | `test-vectors/id-token.json`        | ゲームが写した `src/token.ts` を照合するテストベクター。照合の仕方は `test/vectors.test.ts`                                                                                                                                                                                                       |
+| `testing/`                          | ゲームがテスト用に写すファイル。`fake-id-platform.ts`（`IdRpc` の偽物）と `test-id-cookie.ts`（テスト用の鍵と Cookie）。本物との一致は `test/testing-kit.test.ts` で確かめる                                                                                                                      |
 | `test/`                             | テストと、テスト用の型（`env.d.ts`）、マイグレーションの適用（`apply-migrations.ts`）                                                                                                                                                                                                             |
 | `wrangler.jsonc`                    | 先頭がローカル用、`env.dev` が `dev.kan-game.app` 用                                                                                                                                                                                                                                              |
 | `worker-configuration.d.ts`         | `wrangler types` の生成物。手で編集しない                                                                                                                                                                                                                                                         |
@@ -66,6 +67,10 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
   - テストベクターを作り直すのは、`src/token.ts` の検証の結果が変わる変更をしたときと、ベクターのケースを足すときだけにする。`npm run generate-vectors` で作り直したら、`src/token.ts` とテストベクターの両方を各ゲームの写しに配る
   - 秘密鍵は生成時だけ使って捨てるので、ケースを 1 つ足すだけでも全トークンと公開鍵が入れ替わる。それ以外の理由（整形や、ただの再実行）では作り直さない
 - **`src/rpc.ts` は何も import しない。** 各ゲームが写して、`ID` binding の型付けと `GameService` の実装に使うため。RPC のメソッドを変えたら、このファイルとゲーム側の写しを合わせて直す
+- **`testing/` のファイルは何も import しない。** 写した先で `token.ts` や `rpc.ts` の置き場所がゲームごとに違うため。型は構造で `IdRpc` に合わせ、`test/testing-kit.test.ts` で `IdRpc` に代入できることを確かめる
+  - 名前の規則や RPC の結果（`src/names.ts`）を変えたら、`testing/fake-id-platform.ts` の偽物と名前の規則も合わせて直し、契約テストのケースを足す。契約テストは同じケースを本物と偽物に流して結果を比べるので、片方だけ直すと落ちる
+  - トークンの形式（`src/token.ts` の `signIdToken`）を変えたら、`testing/test-id-cookie.ts` も合わせる
+  - 直したら、写しを各ゲームへ配る
 - ゲームを足すときは、`GAME_<名前>` の service binding と、環境変数 `GAMES` への列挙を、環境ごと（先頭と `env.dev`）に両方書く。`GAMES` に列挙した binding が無いと退会は失敗する
 - `/api/id/*` の API は `src/router.ts` の `ID_ROUTES` に足す。`POST` の限定、`Origin` の確認、鍵の読み込み、Cookie の検証はルーターが行うので、handler で繰り返さない
   - 要 ID の API は `requireId(handler)` で包んで登録する。`401 no_id` と `410 id_deleted` は `requireId` が返し、handler は ID の行（`context.account`）を受け取る。退会の途中の ID を断る API は `requireActiveId` で包む（`409 id_deleting` も返す）

@@ -32,6 +32,10 @@ kan-game.app のポータルと ID 基盤の Worker。
 
 - `src/token.ts`: Cookie の検証。写したら `test-vectors/id-token.json` も写し、`test/vectors.test.ts` と同じ照合をゲームのテストに入れる
 - `src/rpc.ts`: `ID` binding の型（`Service<IdRpc>`）と、ゲームが実装する `GameService`
+- `testing/fake-id-platform.ts`（テスト用）: `IdRpc` の偽物。名前の規則と結果は本物と同じで、「別の ID が名前を持っている」「別のゲームで名前を設定済み」「退会の途中」の状態を作れる
+- `testing/test-id-cookie.ts`（テスト用）: 鍵を作り、`ID_PUBLIC_KEYS` の値と、指定した ID で署名した Cookie を返す
+
+`testing/` のファイルは何も import しない。本物と食い違わないことは `test/testing-kit.test.ts` で確かめている。
 
 ## ローカルの開発
 
