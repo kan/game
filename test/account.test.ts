@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
+import { retryDeletions } from "../src/account";
 import { hashSecret } from "../src/codes";
 import { GAME_ORIGIN, PORTAL_ORIGIN, apiRequest, call, issue } from "./helpers";
 
@@ -165,5 +166,74 @@ describe("POST /api/id/delete", () => {
   it("requires an ID", async () => {
     const response = await call(deleteRequest());
     expect(response.status).toBe(401);
+  });
+});
+
+describe("daily retry of interrupted deletions", () => {
+  async function deleting(): Promise<string> {
+    const account = await populatedId();
+    await call(deleteRequest(account.cookie), {
+      GAMES: "GAME_TAKO",
+      GAME_TAKO: fakeGame({ fail: true }),
+    });
+    return account.id;
+  }
+
+  /** The test env with GAMES and its bindings replaced. */
+  function withGames(games: Record<string, unknown>): Env {
+    return {
+      ...env,
+      GAMES: Object.keys(games).join(","),
+      ...games,
+    } as unknown as Env;
+  }
+
+  /** Counts deleteAccount calls, failing every one. */
+  function failingGame() {
+    const calls: string[] = [];
+    return {
+      calls,
+      async deleteAccount(id: string) {
+        calls.push(id);
+        throw new Error("game unavailable");
+      },
+    };
+  }
+
+  it("completes deletions once the games work again", async () => {
+    const id = await deleting();
+    const tako = fakeGame();
+    await retryDeletions(withGames({ GAME_TAKO: tako }));
+    expect(tako.deleted).toContain(id);
+    expect(await count("ids", id)).toBe(0);
+    expect(await count("names", id)).toBe(0);
+  });
+
+  it("stops at the first failure, leaving the IDs deleting", async () => {
+    const first = await deleting();
+    const second = await deleting();
+    const tako = failingGame();
+    await retryDeletions(withGames({ GAME_TAKO: tako }));
+    expect(tako.calls).toHaveLength(1);
+    for (const id of [first, second]) {
+      const row = await env.DB.prepare("SELECT status FROM ids WHERE id = ?")
+        .bind(id)
+        .first();
+      expect(row).toEqual({ status: "deleting" });
+    }
+  });
+
+  it("does nothing when a listed game has no binding", async () => {
+    const id = await deleting();
+    await retryDeletions({ ...env, GAMES: "GAME_TAKO" } as Env);
+    expect(await count("ids", id)).toBe(1);
+  });
+
+  it("does not touch active IDs", async () => {
+    const account = await issue();
+    const tako = fakeGame();
+    await retryDeletions(withGames({ GAME_TAKO: tako }));
+    expect(tako.deleted).not.toContain(account.id);
+    expect(await count("ids", account.id)).toBe(1);
   });
 });

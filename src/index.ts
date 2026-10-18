@@ -1,4 +1,5 @@
 import { WorkerEntrypoint } from "cloudflare:workers";
+import { retryDeletions } from "./account";
 import { deleteExpiredRows } from "./maintenance";
 import { getName, registerName } from "./names";
 import { handleFetch } from "./router";
@@ -15,8 +16,15 @@ export default class IdPlatform extends WorkerEntrypoint<Env> implements IdRpc {
     return handleFetch(request, this.env);
   }
 
+  /** Daily: expired codes and tokens, and deletions a game interrupted. */
   override async scheduled(): Promise<void> {
-    await deleteExpiredRows(this.env.DB, Date.now());
+    // Independent jobs: one failing must not skip the other.
+    const results = await Promise.allSettled([
+      deleteExpiredRows(this.env.DB, Date.now()),
+      retryDeletions(this.env),
+    ]);
+    const failed = results.find((result) => result.status === "rejected");
+    if (failed) throw failed.reason;
   }
 
   getName(id: string): Promise<string | null> {

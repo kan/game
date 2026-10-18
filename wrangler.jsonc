@@ -24,7 +24,8 @@
       "simple": { "limit": 5, "period": 60 },
     },
   ],
-  // Daily cleanup of expired transfer codes and migration tokens (UTC).
+  // Daily (UTC): cleans up expired transfer codes and migration tokens, and
+  // retries deletions a game outage interrupted.
   // Inherited by env.dev, unlike the bindings.
   "triggers": { "crons": ["0 18 * * *"] },
   "vars": {
