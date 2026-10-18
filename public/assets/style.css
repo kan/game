@@ -119,9 +119,15 @@ section p {
 }
 
 .game {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 16px;
   text-decoration: none;
   color: var(--text);
+}
+
+.game-icon {
+  flex: none;
 }
 
 .game-title {
