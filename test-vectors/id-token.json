@@ -1,0 +1,166 @@
+{
+  "description": "Test vectors for copies of src/token.ts. Verify each token with the keys, issuer and now given here; each cookie header with cookieName.",
+  "issuer": "dev.kan-game.app",
+  "now": 1792281600000,
+  "cookieName": "__Secure-kgdev_id",
+  "keys": [
+    {
+      "kid": "vector-key",
+      "kty": "EC",
+      "crv": "P-256",
+      "x": "YJn--o4k9cnvjzlwWxM6naFQqChCPxhyfCjhivCGMpk",
+      "y": "QAaxxshstyO5peGDyL3s4EpRMj7UE3nWaQ-I7vzocGQ"
+    },
+    {
+      "kid": "vector-previous",
+      "kty": "EC",
+      "crv": "P-256",
+      "x": "3eJZyXycg_deazOqh9cUFkelztLtqlEqiFOJWvHoVQg",
+      "y": "pWj1N20oBxR-6hEC0ArHcvia7M79rALlBhjeQ32MefY"
+    }
+  ],
+  "tokens": [
+    {
+      "name": "valid",
+      "token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InZlY3Rvci1rZXkifQ.eyJzdWIiOiIzZjhlMmE0Yy0xYjdkLTRlOWEtOWMyZi02ZDViOGExZTBmMzQiLCJpc3MiOiJkZXYua2FuLWdhbWUuYXBwIiwiaWF0IjoxNzkyMTk1MjAwLCJleHAiOjE4MjY3NTUyMDB9.srq2IuLWQg--MQk6KUnMFV2XNbKsvtddtQOEZgvohKW5fBoVVrMaAD-m51dgzBaZOowHDLpw9MbfND5AK1-mdg",
+      "expected": {
+        "sub": "3f8e2a4c-1b7d-4e9a-9c2f-6d5b8a1e0f34",
+        "iss": "dev.kan-game.app",
+        "iat": 1792195200,
+        "exp": 1826755200
+      }
+    },
+    {
+      "name": "valid, signed by the second key (a key rotation)",
+      "token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InZlY3Rvci1wcmV2aW91cyJ9.eyJzdWIiOiIzZjhlMmE0Yy0xYjdkLTRlOWEtOWMyZi02ZDViOGExZTBmMzQiLCJpc3MiOiJkZXYua2FuLWdhbWUuYXBwIiwiaWF0IjoxNzkyMTk1MjAwLCJleHAiOjE4MjY3NTUyMDB9.C3nGgvbHtYXkz9S7H2TB1g1lNs7N_0_zgtBXgN8A2TAh74Svay9loO9JXCvqk9r5TpKxuDojl2ggjS8G337lrA",
+      "expected": {
+        "sub": "3f8e2a4c-1b7d-4e9a-9c2f-6d5b8a1e0f34",
+        "iss": "dev.kan-game.app",
+        "iat": 1792195200,
+        "exp": 1826755200
+      }
+    },
+    {
+      "name": "exp is one second after now",
+      "token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InZlY3Rvci1rZXkifQ.eyJzdWIiOiIzZjhlMmE0Yy0xYjdkLTRlOWEtOWMyZi02ZDViOGExZTBmMzQiLCJpc3MiOiJkZXYua2FuLWdhbWUuYXBwIiwiaWF0IjoxNzU3NzIxNjAxLCJleHAiOjE3OTIyODE2MDF9.Ku_2ctKCeFtMDY4FTt33LZxdMkNzo5A4a6mudiURbBo8ej6QH9GwpZmix1XSghoMcZfx5v7k8F9uqCcOBws3xQ",
+      "expected": {
+        "sub": "3f8e2a4c-1b7d-4e9a-9c2f-6d5b8a1e0f34",
+        "iss": "dev.kan-game.app",
+        "iat": 1757721601,
+        "exp": 1792281601
+      }
+    },
+    {
+      "name": "exp is exactly now",
+      "token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InZlY3Rvci1rZXkifQ.eyJzdWIiOiIzZjhlMmE0Yy0xYjdkLTRlOWEtOWMyZi02ZDViOGExZTBmMzQiLCJpc3MiOiJkZXYua2FuLWdhbWUuYXBwIiwiaWF0IjoxNzU3NzIxNjAwLCJleHAiOjE3OTIyODE2MDB9.BFoONvwn2RPHAIQFPV0784c4ECdeI6wkYeMvsP67EC5kGlqjzKfuO2LM0HqZLpaK_kZXWsn3_vJgmuJCqkKfqQ",
+      "expected": null
+    },
+    {
+      "name": "expired (signed 401 days before now)",
+      "token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InZlY3Rvci1rZXkifQ.eyJzdWIiOiIzZjhlMmE0Yy0xYjdkLTRlOWEtOWMyZi02ZDViOGExZTBmMzQiLCJpc3MiOiJkZXYua2FuLWdhbWUuYXBwIiwiaWF0IjoxNzU3NjM1MjAwLCJleHAiOjE3OTIxOTUyMDB9.5Ctqke2-igJ3XzJ5n8JEk5ctTqGIRD4SbgHpoZWLuCNRHdWochGGmcK1ZNlvims38bKRzlc7kXmS86HY7AiFzg",
+      "expected": null
+    },
+    {
+      "name": "another issuer",
+      "token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InZlY3Rvci1rZXkifQ.eyJzdWIiOiIzZjhlMmE0Yy0xYjdkLTRlOWEtOWMyZi02ZDViOGExZTBmMzQiLCJpc3MiOiJrYW4tZ2FtZS5hcHAiLCJpYXQiOjE3OTIxOTUyMDAsImV4cCI6MTgyNjc1NTIwMH0.ckDawIYHQokjOePAw4wV7Wl0p7LiDbPHJYR55mAykIn5gsuvwd5hr97i-dBvyLm7udCVmDyt1Y8MPoZayO6jBA",
+      "expected": null
+    },
+    {
+      "name": "unknown kid",
+      "token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InZlY3Rvci11bmtub3duIn0.eyJzdWIiOiIzZjhlMmE0Yy0xYjdkLTRlOWEtOWMyZi02ZDViOGExZTBmMzQiLCJpc3MiOiJkZXYua2FuLWdhbWUuYXBwIiwiaWF0IjoxNzkyMTk1MjAwLCJleHAiOjE4MjY3NTUyMDB9.Shlrptslbu9-ozl5ZwU7r9GBXeb99aBpFnkMZIckE1q641C4c9QOYmXafAjD-UfjD9VYm0B4OwWusxqYaaGiLA",
+      "expected": null
+    },
+    {
+      "name": "known kid, signed by another key",
+      "token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InZlY3Rvci1rZXkifQ.eyJzdWIiOiIzZjhlMmE0Yy0xYjdkLTRlOWEtOWMyZi02ZDViOGExZTBmMzQiLCJpc3MiOiJkZXYua2FuLWdhbWUuYXBwIiwiaWF0IjoxNzkyMTk1MjAwLCJleHAiOjE4MjY3NTUyMDB9.Se3FO3TpRWg_o9aTAl0tsb6AIJJJ_PjfcQEhl0y-Ry3koduaOZMs8nuk_LboDTZa8AVRn2D9aX_rv3v4mLL0ag",
+      "expected": null
+    },
+    {
+      "name": "tampered signature",
+      "token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InZlY3Rvci1rZXkifQ.eyJzdWIiOiIzZjhlMmE0Yy0xYjdkLTRlOWEtOWMyZi02ZDViOGExZTBmMzQiLCJpc3MiOiJkZXYua2FuLWdhbWUuYXBwIiwiaWF0IjoxNzkyMTk1MjAwLCJleHAiOjE4MjY3NTUyMDB9.Arq2IuLWQg--MQk6KUnMFV2XNbKsvtddtQOEZgvohKW5fBoVVrMaAD-m51dgzBaZOowHDLpw9MbfND5AK1-mdg",
+      "expected": null
+    },
+    {
+      "name": "tampered payload",
+      "token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InZlY3Rvci1rZXkifQ.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDAiLCJpc3MiOiJkZXYua2FuLWdhbWUuYXBwIiwiaWF0IjoxNzkyMTk1MjAwLCJleHAiOjE4MjY3NTUyMDB9.srq2IuLWQg--MQk6KUnMFV2XNbKsvtddtQOEZgvohKW5fBoVVrMaAD-m51dgzBaZOowHDLpw9MbfND5AK1-mdg",
+      "expected": null
+    },
+    {
+      "name": "alg none",
+      "token": "eyJhbGciOiJub25lIiwidHlwIjoiSldUIiwia2lkIjoidmVjdG9yLWtleSJ9.eyJzdWIiOiIzZjhlMmE0Yy0xYjdkLTRlOWEtOWMyZi02ZDViOGExZTBmMzQiLCJpc3MiOiJkZXYua2FuLWdhbWUuYXBwIiwiaWF0IjoxNzkyMTk1MjAwLCJleHAiOjE4MjY3NTUyMDB9.srq2IuLWQg--MQk6KUnMFV2XNbKsvtddtQOEZgvohKW5fBoVVrMaAD-m51dgzBaZOowHDLpw9MbfND5AK1-mdg",
+      "expected": null
+    },
+    {
+      "name": "alg HS256",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InZlY3Rvci1rZXkifQ.eyJzdWIiOiIzZjhlMmE0Yy0xYjdkLTRlOWEtOWMyZi02ZDViOGExZTBmMzQiLCJpc3MiOiJkZXYua2FuLWdhbWUuYXBwIiwiaWF0IjoxNzkyMTk1MjAwLCJleHAiOjE4MjY3NTUyMDB9.srq2IuLWQg--MQk6KUnMFV2XNbKsvtddtQOEZgvohKW5fBoVVrMaAD-m51dgzBaZOowHDLpw9MbfND5AK1-mdg",
+      "expected": null
+    },
+    {
+      "name": "subject is not a UUID v4",
+      "token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InZlY3Rvci1rZXkifQ.eyJzdWIiOiJub3QtYS11dWlkIiwiaXNzIjoiZGV2Lmthbi1nYW1lLmFwcCIsImlhdCI6MTc5MjE5NTIwMCwiZXhwIjoxODI2NzU1MjAwfQ.ur3sqDFrGjaVtlElwAHZKhqoOyKQGEpGHokA-i6BFHhvhNU3f8ZhfVCpF-OAJwfvLo0jqkhtUPwbEaNRZoTMug",
+      "expected": null
+    },
+    {
+      "name": "kid is not a string",
+      "token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6MX0.eyJzdWIiOiIzZjhlMmE0Yy0xYjdkLTRlOWEtOWMyZi02ZDViOGExZTBmMzQiLCJpc3MiOiJkZXYua2FuLWdhbWUuYXBwIiwiaWF0IjoxNzkyMTk1MjAwLCJleHAiOjE4MjY3NTUyMDB9.srq2IuLWQg--MQk6KUnMFV2XNbKsvtddtQOEZgvohKW5fBoVVrMaAD-m51dgzBaZOowHDLpw9MbfND5AK1-mdg",
+      "expected": null
+    },
+    {
+      "name": "no iat",
+      "token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InZlY3Rvci1rZXkifQ.eyJzdWIiOiIzZjhlMmE0Yy0xYjdkLTRlOWEtOWMyZi02ZDViOGExZTBmMzQiLCJpc3MiOiJkZXYua2FuLWdhbWUuYXBwIiwiZXhwIjoxNzkyMzY4MDAwfQ.nTpy77NOD2dUASgdyDnNCKm0c4kbDhQ_u-UbY2UXeyF6qoKishU39v32LUH7VQ1mNu016BYzu5j9tmGnNRk1Rg",
+      "expected": null
+    },
+    {
+      "name": "signature one byte short",
+      "token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InZlY3Rvci1rZXkifQ.eyJzdWIiOiIzZjhlMmE0Yy0xYjdkLTRlOWEtOWMyZi02ZDViOGExZTBmMzQiLCJpc3MiOiJkZXYua2FuLWdhbWUuYXBwIiwiaWF0IjoxNzkyMTk1MjAwLCJleHAiOjE4MjY3NTUyMDB9.srq2IuLWQg--MQk6KUnMFV2XNbKsvtddtQOEZgvohKW5fBoVVrMaAD-m51dgzBaZOowHDLpw9MbfND5AK1-m",
+      "expected": null
+    },
+    {
+      "name": "two parts",
+      "token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InZlY3Rvci1rZXkifQ.eyJzdWIiOiIzZjhlMmE0Yy0xYjdkLTRlOWEtOWMyZi02ZDViOGExZTBmMzQiLCJpc3MiOiJkZXYua2FuLWdhbWUuYXBwIiwiaWF0IjoxNzkyMTk1MjAwLCJleHAiOjE4MjY3NTUyMDB9",
+      "expected": null
+    },
+    {
+      "name": "empty",
+      "token": "",
+      "expected": null
+    }
+  ],
+  "cookies": [
+    {
+      "name": "the only cookie",
+      "header": "__Secure-kgdev_id=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InZlY3Rvci1rZXkifQ.eyJzdWIiOiIzZjhlMmE0Yy0xYjdkLTRlOWEtOWMyZi02ZDViOGExZTBmMzQiLCJpc3MiOiJkZXYua2FuLWdhbWUuYXBwIiwiaWF0IjoxNzkyMTk1MjAwLCJleHAiOjE4MjY3NTUyMDB9.srq2IuLWQg--MQk6KUnMFV2XNbKsvtddtQOEZgvohKW5fBoVVrMaAD-m51dgzBaZOowHDLpw9MbfND5AK1-mdg",
+      "expected": "3f8e2a4c-1b7d-4e9a-9c2f-6d5b8a1e0f34"
+    },
+    {
+      "name": "among other cookies",
+      "header": "theme=dark; __Secure-kgdev_id=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InZlY3Rvci1rZXkifQ.eyJzdWIiOiIzZjhlMmE0Yy0xYjdkLTRlOWEtOWMyZi02ZDViOGExZTBmMzQiLCJpc3MiOiJkZXYua2FuLWdhbWUuYXBwIiwiaWF0IjoxNzkyMTk1MjAwLCJleHAiOjE4MjY3NTUyMDB9.srq2IuLWQg--MQk6KUnMFV2XNbKsvtddtQOEZgvohKW5fBoVVrMaAD-m51dgzBaZOowHDLpw9MbfND5AK1-mdg; lang=ja",
+      "expected": "3f8e2a4c-1b7d-4e9a-9c2f-6d5b8a1e0f34"
+    },
+    {
+      "name": "an invalid copy before the valid one",
+      "header": "__Secure-kgdev_id=stale; __Secure-kgdev_id=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InZlY3Rvci1rZXkifQ.eyJzdWIiOiIzZjhlMmE0Yy0xYjdkLTRlOWEtOWMyZi02ZDViOGExZTBmMzQiLCJpc3MiOiJkZXYua2FuLWdhbWUuYXBwIiwiaWF0IjoxNzkyMTk1MjAwLCJleHAiOjE4MjY3NTUyMDB9.srq2IuLWQg--MQk6KUnMFV2XNbKsvtddtQOEZgvohKW5fBoVVrMaAD-m51dgzBaZOowHDLpw9MbfND5AK1-mdg",
+      "expected": "3f8e2a4c-1b7d-4e9a-9c2f-6d5b8a1e0f34"
+    },
+    {
+      "name": "the valid copy before an invalid one",
+      "header": "__Secure-kgdev_id=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InZlY3Rvci1rZXkifQ.eyJzdWIiOiIzZjhlMmE0Yy0xYjdkLTRlOWEtOWMyZi02ZDViOGExZTBmMzQiLCJpc3MiOiJkZXYua2FuLWdhbWUuYXBwIiwiaWF0IjoxNzkyMTk1MjAwLCJleHAiOjE4MjY3NTUyMDB9.srq2IuLWQg--MQk6KUnMFV2XNbKsvtddtQOEZgvohKW5fBoVVrMaAD-m51dgzBaZOowHDLpw9MbfND5AK1-mdg; __Secure-kgdev_id=stale",
+      "expected": "3f8e2a4c-1b7d-4e9a-9c2f-6d5b8a1e0f34"
+    },
+    {
+      "name": "a cookie whose name only ends with the ID cookie's name",
+      "header": "x__Secure-kgdev_id=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InZlY3Rvci1rZXkifQ.eyJzdWIiOiIzZjhlMmE0Yy0xYjdkLTRlOWEtOWMyZi02ZDViOGExZTBmMzQiLCJpc3MiOiJkZXYua2FuLWdhbWUuYXBwIiwiaWF0IjoxNzkyMTk1MjAwLCJleHAiOjE4MjY3NTUyMDB9.srq2IuLWQg--MQk6KUnMFV2XNbKsvtddtQOEZgvohKW5fBoVVrMaAD-m51dgzBaZOowHDLpw9MbfND5AK1-mdg",
+      "expected": null
+    },
+    {
+      "name": "a cookie whose name only starts with the ID cookie's name",
+      "header": "__Secure-kgdev_id_old=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InZlY3Rvci1rZXkifQ.eyJzdWIiOiIzZjhlMmE0Yy0xYjdkLTRlOWEtOWMyZi02ZDViOGExZTBmMzQiLCJpc3MiOiJkZXYua2FuLWdhbWUuYXBwIiwiaWF0IjoxNzkyMTk1MjAwLCJleHAiOjE4MjY3NTUyMDB9.srq2IuLWQg--MQk6KUnMFV2XNbKsvtddtQOEZgvohKW5fBoVVrMaAD-m51dgzBaZOowHDLpw9MbfND5AK1-mdg",
+      "expected": null
+    },
+    {
+      "name": "no cookie header",
+      "header": null,
+      "expected": null
+    }
+  ]
+}

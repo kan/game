@@ -10,7 +10,11 @@
     "test": "vitest run",
     "cf-typegen": "wrangler types --strict-vars=false",
     "generate-key": "node scripts/generate-signing-key.mjs",
+    "generate-vectors": "node scripts/generate-test-vectors.mjs && prettier --write test-vectors",
     "format": "prettier --write ."
+  },
+  "engines": {
+    "node": ">=22.18"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "^1.4.4",

@@ -22,6 +22,14 @@ kan-game.app のポータルと ID 基盤の Worker。
 | `src/token.ts`                     | Cookie の JWT（ES256）の署名と検証。各ゲームはこのファイルを写して検証に使う |
 | `migrations/`                      | D1 のスキーマ                                                                |
 | `scripts/generate-signing-key.mjs` | 署名鍵（P-256）の生成                                                        |
+| `test-vectors/id-token.json`       | ゲームが写した `src/token.ts` を照合するテストベクター                       |
+
+## ゲームから使う
+
+各ゲームは次のファイルを書き換えずに写す（`kan/game` は private なので npm の依存にしない）。
+
+- `src/token.ts`: Cookie の検証。写したら `test-vectors/id-token.json` も写し、`test/vectors.test.ts` と同じ照合をゲームのテストに入れる
+- `src/rpc.ts`: `ID` binding の型（`Service<IdRpc>`）と、ゲームが実装する `GameService`
 
 ## ローカルの開発
 
