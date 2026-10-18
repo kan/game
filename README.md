@@ -7,8 +7,10 @@ kan-game.app のポータルと ID 基盤の Worker。
 
 | パス                               | 内容                                                                         |
 | ---------------------------------- | ---------------------------------------------------------------------------- |
-| `src/index.ts`                     | ルーター。`/api/id/*` の `Origin` の確認                                     |
+| `src/index.ts`                     | ルーター（`Origin` の確認、Cookie の検証、要 ID の判定）と定期実行の起点     |
 | `src/session.ts`                   | `POST /api/id/session`（ID の発行と延長）                                    |
+| `src/transfer.ts`                  | 引き継ぎコードの発行と入力                                                   |
+| `src/maintenance.ts`               | 期限切れの行を消す定期実行                                                   |
 | `src/id.ts`                        | Cookie からの ID の読み取りと、Cookie を設定する応答の組み立て               |
 | `src/token.ts`                     | Cookie の JWT（ES256）の署名と検証。各ゲームはこのファイルを写して検証に使う |
 | `migrations/`                      | D1 のスキーマ                                                                |

@@ -30,26 +30,34 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
 
 ## ファイル構成
 
-| パス                               | 責務                                                                                                                           |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `src/index.ts`                     | ルーター。パスから handler を引き、`POST` 以外と許可外の `Origin` をここで断る                                                 |
-| `src/http.ts`                      | JSON の応答（`Cache-Control: no-store` 付き）、エラーの応答、`Origin` の確認、Cookie の組み立て、クライアントの IP             |
-| `src/keys.ts`                      | 署名鍵と公開鍵の読み込み。isolate ごとに 1 回だけ import してキャッシュする。署名鍵の `kid` が公開鍵の一覧に無ければ失敗させる |
-| `src/token.ts`                     | JWT（ES256）の署名と検証、Cookie ヘッダーの解析（同名の Cookie はすべて検証する `verifyIdCookie`）                             |
-| `src/id.ts`                        | リクエストの Cookie から ID を読む `readIdClaims`、Cookie を設定して `{ id, name, status }` を返す `idResponse`                |
-| `src/session.ts`                   | `POST /api/id/session`（ID の発行と延長）                                                                                      |
-| `migrations/`                      | D1 のスキーマ。設計書の全テーブルを `0001_initial.sql` に持つ                                                                  |
-| `scripts/generate-signing-key.mjs` | 鍵の生成                                                                                                                       |
-| `test/`                            | テストと、テスト用の型（`env.d.ts`）、マイグレーションの適用（`apply-migrations.ts`）                                          |
-| `wrangler.jsonc`                   | 先頭がローカル用、`env.dev` が `dev.kan-game.app` 用                                                                           |
-| `worker-configuration.d.ts`        | `wrangler types` の生成物。手で編集しない                                                                                      |
+| パス                               | 責務                                                                                                                                                                                                                                 |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/index.ts`                     | ルーター。`POST` 以外と許可外の `Origin` を断り、Cookie を検証して handler に渡す。定期実行（`scheduled`）もここから呼ぶ                                                                                                             |
+| `src/http.ts`                      | JSON の応答（`Cache-Control: no-store` 付き）、エラーの応答、`Origin` の確認、Cookie の組み立て、クライアントの IP                                                                                                                   |
+| `src/keys.ts`                      | 署名鍵と公開鍵の読み込み。isolate ごとに 1 回だけ import してキャッシュする。署名鍵の `kid` が公開鍵の一覧に無ければ失敗させる                                                                                                       |
+| `src/token.ts`                     | JWT（ES256）の署名と検証、Cookie ヘッダーの解析（同名の Cookie はすべて検証する `verifyIdCookie`）                                                                                                                                   |
+| `src/id.ts`                        | handler の型と文脈（`IdHandler` / `IdContext` / `AuthedIdContext`）、要 ID の API を包む `requireId`、ID の行を引く `findId` と `resolveAccount`（退会済みなら `410`）、Cookie を設定して `{ id, name, status }` を返す `idResponse` |
+| `src/codes.ts`                     | 利用者が入力するコード（32 種の文字）の生成と正規化。引き継ぎコードと復旧コードで共有する                                                                                                                                            |
+| `src/session.ts`                   | `POST /api/id/session`（ID の発行と延長）                                                                                                                                                                                            |
+| `src/transfer.ts`                  | 引き継ぎコードの発行と入力                                                                                                                                                                                                           |
+| `src/maintenance.ts`               | 期限切れの引き継ぎコードと引き継ぎ用トークンを消す（1 日 1 回の定期実行）                                                                                                                                                            |
+| `migrations/`                      | D1 のスキーマ。設計書の全テーブルを `0001_initial.sql` に持つ                                                                                                                                                                        |
+| `scripts/generate-signing-key.mjs` | 鍵の生成                                                                                                                                                                                                                             |
+| `test/`                            | テストと、テスト用の型（`env.d.ts`）、マイグレーションの適用（`apply-migrations.ts`）                                                                                                                                                |
+| `wrangler.jsonc`                   | 先頭がローカル用、`env.dev` が `dev.kan-game.app` 用                                                                                                                                                                                 |
+| `worker-configuration.d.ts`        | `wrangler types` の生成物。手で編集しない                                                                                                                                                                                            |
 
 ## 実装の規約
 
 - **`src/token.ts` は Web Crypto 以外に依存させない。** 各ゲームがこのファイルを写して Cookie の検証に使うため（設計書「鍵の管理」）。`src/` の他のファイルや npm のパッケージを import しない
-- `/api/id/*` の API は `src/index.ts` の `ID_ROUTES` に足す。`POST` の限定と `Origin` の確認はルーターが行うので、handler で繰り返さない
+- `/api/id/*` の API は `src/index.ts` の `ID_ROUTES` に足す。`POST` の限定、`Origin` の確認、鍵の読み込み、Cookie の検証はルーターが行うので、handler で繰り返さない
+  - 要 ID の API は `requireId(handler)` で包んで登録する。`401 no_id` と `410 id_deleted` は `requireId` が返し、handler は ID の行（`context.account`）を受け取る
+  - それ以外の handler は `context.claims`（検証済みの Cookie、無ければ null）を受け取る。その ID が退会済みかは確かめていないので、要るなら `resolveAccount` を呼ぶ
+  - 復旧コードと退会の API は、呼べるオリジンをポータルだけにする（設計書「HTTP の API」）。ルーターにはまだその区別が無いので、これらを実装するときに `ID_ROUTES` の側で表せるようにする
+  - 3 つの redeem は、頻度制限、本文の解析、ID の切り替えが共通になる。2 つ目の redeem を実装するときに、`src/transfer.ts` から共通の処理を切り出す
 - Cookie を設定して `{ id, name, status }` を返す API（session と 3 つの redeem）は `idResponse` で応答を組み立てる。署名と `Set-Cookie` を handler ごとに書かない
-- Cookie から ID を読むときは `readIdClaims` を使う。要 ID の API を足すときは、`401 no_id` と退会済みの ID の扱いを handler ごとに書かず、ルーターか共通の関数にまとめる（未実装）
+- 入力の API（redeem）の頻度制限は、1 つの binding `REDEEM_RATE_LIMITER` を共有し、キーを `<API 名>:<IP>` にして API ごとに数える（設計書の上限が 3 種とも 5 回 / 60 秒のため）。制限の確認は本文を読む前に行い、誤ったコードの試行も数える
+- 利用者が入力するコードは `src/codes.ts` の `randomCode` と `normalizeCode` で作り、受け付ける
 - エラーは `error(status, code)` で `{ "error": "<code>" }` を返す。コードは設計書の名前（`origin_not_allowed`、`no_id`、`rate_limited` など）に合わせる
 - 時刻は Unix エポックからのミリ秒の整数で D1 に持つ。JWT の `iat` と `exp` だけは秒
 - 鍵は `loadKeys(env)` から取る。リクエストごとに `importKey` しない
@@ -61,8 +69,8 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
 - `vitest.config.ts` が実行のたびに鍵ペアを 3 つ生成し、binding として渡す。現在の署名鍵、ローテーションで退いた鍵（公開鍵だけ `ID_PUBLIC_KEYS` に残る）、未知の鍵。**秘密鍵をリポジトリに置かない**
 - 環境変数は `wrangler.jsonc` の先頭（ローカル用）を読み、`vitest.config.ts` の `miniflare.bindings` で開発環境の値に上書きしている
 - マイグレーションは `test/apply-migrations.ts`（setupFiles）が `applyD1Migrations` で適用する
-- handler は `worker.fetch(request, { ...env, ...overrides })` で直接呼ぶ。`CF-Connecting-IP` と env の一部を差し替えられるため
-- Rate Limiting の binding はテストの間で数を共有する。テストごとに IP を変える（`sessionRequest()` は呼ぶたびに別の IP を使う）
+- handler は `worker.fetch(request, { ...env, ...overrides })` で直接呼ぶ。`CF-Connecting-IP` と env の一部を差し替えられるため。リクエストの組み立てと呼び出しの補助は `test/helpers.ts` にある
+- Rate Limiting の binding はテストの間（ファイルをまたいでも）で数を共有し、数は実行の後も最長 60 秒残る。**固定の IP を書かない。** 同じ IP で何度も呼ぶテストは `uniqueIp()` で IP を作る（`apiRequest()` は呼ぶたびに `uniqueIp()` を使う）
 - テスト用の binding を足したら `test/env.d.ts` に型を足す
 
 ## 開発上の知見
@@ -71,10 +79,10 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
 
 - **`@cloudflare/vitest-pool-workers` は `@cloudflare/vitest-plugin` に改名され、旧名は更新されない。** 旧名を入れない。設定は `cloudflareTest()` を Vite のプラグインとして渡す形で、`readD1Migrations` も同じパッケージから import する
 - `wrangler types` はオプションなしだと `vars` をリテラル型にする。テストで値を差し替えられないので `--strict-vars=false` で生成する（`npm run cf-typegen`）
-- `secrets.required` に書いた `ID_SIGNING_KEY` は、生成される型で省略可能（`?: string`）になる。`loadKeys` で未設定を検査している
-- テストの実行時に `Missing required secrets: ID_SIGNING_KEY` の警告が出るが、`miniflare.bindings` で渡しているので動作に影響しない
+- `secrets.required` に書いた `ID_SIGNING_KEY` の型は、`wrangler types` を実行した環境に `.dev.vars` があれば `string`、無ければ省略可能（`?: string`）になる。リポジトリの `worker-configuration.d.ts` は `.dev.vars` がある状態で生成する（README の手順で最初に作る）。`loadKeys` はどちらの型でも未設定を検査している
+- テストの実行時に `Missing required secrets: ID_SIGNING_KEY` の警告が出るが、`miniflare.bindings` で渡しているので動作に影響しない。`.dev.vars` があると `Using secrets defined in .dev.vars` と出て読み込まれるが、同じ名前は `miniflare.bindings` が上書きする
 - `.dev.vars` の値は `wrangler.jsonc` の `vars` より優先される。ローカルの `ID_PUBLIC_KEYS` は `wrangler.jsonc` では `[]` にしておき、`.dev.vars` で与える（`wrangler dev` と curl で確認済み）
-- `d1_databases`、`ratelimits`、`secrets` は `env.dev` へ継承されないので、環境ごとに書く。Rate Limiting の `namespace_id` はアカウント内で環境ごとに別の値にする（ローカル `1001`、dev `1101`）。期間は 10 秒か 60 秒しか選べない
+- `d1_databases`、`ratelimits`、`secrets` は `env.dev` へ継承されないので、環境ごとに書く。Rate Limiting の `namespace_id` はアカウント内で環境ごとに別の値にする（ローカル `1001` `1002`、dev `1101` `1102`）。期間は 10 秒か 60 秒しか選べない
 - 公開鍵の一覧に署名鍵の公開鍵が無いままデプロイすると、発行した Cookie をどれも検証できず、呼ぶたびに新しい ID ができる。`env.dev` の `ID_PUBLIC_KEYS` は `[]` のまま置いてあるので、`loadKeys` が失敗させて気付けるようにしている
 - 1 つのブラウザが同じ名前の Cookie を 2 つ持つことがある（host-only と `Domain=kan-game.app`）。先頭の 1 つだけを見ると、無効な方が有効な方を隠して毎回新しい ID を発行してしまうので、すべてを検証する
 - npm 11 は install script を承認制にしており、`npm install` で workerd と esbuild の postinstall が止められる。プラットフォーム別のバイナリは optional dependency として入るので、テストと `wrangler dev` は動く
@@ -84,7 +92,7 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
 
 ## 進み具合（R1）
 
-- 済: Worker と D1 の雛形、`POST /api/id/session`、鍵の生成スクリプト、テスト
-- 未着手: 引き継ぎコード、復旧コード、引き継ぎ用トークン、退会、ゲームとの RPC（`WorkerEntrypoint`）、期限切れの行を消す定期実行、ポータルとアカウント画面、検証用のテストベクター、`dev.kan-game.app` へのデプロイ（`kan-game-dev` の D1 の作成から）
+- 済: Worker と D1 の雛形、`POST /api/id/session`、鍵の生成スクリプト、引き継ぎコード、期限切れの行を消す定期実行、テスト
+- 未着手: 復旧コード、引き継ぎ用トークン、退会、ゲームとの RPC（`WorkerEntrypoint`）、ポータルとアカウント画面、検証用のテストベクター、`dev.kan-game.app` へのデプロイ（`kan-game-dev` の D1 の作成から）
 
 段階を進めたらこの節を更新する。

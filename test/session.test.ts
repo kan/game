@@ -1,73 +1,20 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
-import worker from "../src/index";
 import { LAST_SEEN_INTERVAL_MS } from "../src/session";
 import {
   ID_TOKEN_LIFETIME_SECONDS,
   importSigningKey,
-  importVerificationKeys,
   signIdToken,
-  verifyIdToken,
 } from "../src/token";
-
-const ORIGIN = "https://tako-dev.kan-game.app";
-const COOKIE = env.COOKIE_NAME;
-let ipCounter = 0;
-
-/** Each call gets its own IP unless given one, so tests do not share a rate limit. */
-function sessionRequest(
-  options: {
-    cookie?: string;
-    origin?: string | null;
-    ip?: string;
-    method?: string;
-  } = {},
-): Request {
-  const headers = new Headers({
-    "CF-Connecting-IP": options.ip ?? `192.0.2.${++ipCounter}`,
-  });
-  if (options.origin !== null) headers.set("Origin", options.origin ?? ORIGIN);
-  if (options.cookie) headers.set("Cookie", options.cookie);
-  return new Request("https://tako-dev.kan-game.app/api/id/session", {
-    method: options.method ?? "POST",
-    headers,
-  });
-}
-
-function call(
-  request: Request,
-  overrides: Partial<Env> = {},
-): Promise<Response> {
-  return worker.fetch(
-    request as Request<unknown, IncomingRequestCfProperties>,
-    {
-      ...env,
-      ...overrides,
-    },
-  );
-}
-
-function cookieToken(response: Response): string | null {
-  const header = response.headers.get("Set-Cookie");
-  const match = header?.match(new RegExp(`^${COOKIE}=([^;]*)`));
-  return match ? match[1] : null;
-}
-
-async function issue(): Promise<{ id: string; token: string }> {
-  const response = await call(sessionRequest());
-  expect(response.status).toBe(200);
-  const body = await response.json<{ id: string }>();
-  return { id: body.id, token: cookieToken(response)! };
-}
-
-async function verify(token: string) {
-  return verifyIdToken(
-    token,
-    await importVerificationKeys(env.ID_PUBLIC_KEYS),
-    env.ISSUER,
-    Date.now(),
-  );
-}
+import {
+  COOKIE,
+  call,
+  cookieToken,
+  issue,
+  sessionRequest,
+  uniqueIp,
+  verifyToken as verify,
+} from "./helpers";
 
 /** Decoded independently of src/token.ts, so the test checks its encoding. */
 function decodeHeader(token: string): { alg: string; kid: string } {
@@ -178,7 +125,7 @@ describe("POST /api/id/session: issuing", () => {
   });
 
   it("limits issuing to 10 per minute per IP", async () => {
-    const ip = "198.51.100.7";
+    const ip = uniqueIp();
     for (let i = 0; i < 10; i++) {
       expect((await call(sessionRequest({ ip }))).status).toBe(200);
     }
@@ -209,7 +156,7 @@ describe("POST /api/id/session: extending", () => {
   });
 
   it("extends even when the issuing rate limit is used up", async () => {
-    const ip = "198.51.100.8";
+    const ip = uniqueIp();
     const { token } = await issue();
     for (let i = 0; i < 10; i++) await call(sessionRequest({ ip }));
     const response = await call(

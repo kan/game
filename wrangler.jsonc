@@ -17,7 +17,16 @@
       "namespace_id": "1001",
       "simple": { "limit": 10, "period": 60 },
     },
+    {
+      // Shared by the redeem APIs; each keys its count as `<api>:<ip>`.
+      "name": "REDEEM_RATE_LIMITER",
+      "namespace_id": "1002",
+      "simple": { "limit": 5, "period": 60 },
+    },
   ],
+  // Daily cleanup of expired transfer codes and migration tokens (UTC).
+  // Inherited by env.dev, unlike the bindings.
+  "triggers": { "crons": ["0 18 * * *"] },
   "vars": {
     // Whether browsers accept a `__Secure-` cookie on http://localhost is still
     // to be checked in R1 (docs/ID_DESIGN.md「ローカルの開発」).
@@ -53,6 +62,11 @@
           "name": "ISSUE_RATE_LIMITER",
           "namespace_id": "1101",
           "simple": { "limit": 10, "period": 60 },
+        },
+        {
+          "name": "REDEEM_RATE_LIMITER",
+          "namespace_id": "1102",
+          "simple": { "limit": 5, "period": 60 },
         },
       ],
       "vars": {

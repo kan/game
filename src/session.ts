@@ -1,6 +1,5 @@
-import { clearIdCookie, clientIp, error } from "./http";
-import { idResponse, readIdClaims, type IdStatus } from "./id";
-import { loadKeys } from "./keys";
+import { clientIp, error } from "./http";
+import { idResponse, resolveAccount, type IdContext } from "./id";
 
 /** `last_seen_at` is written at most once a day. */
 export const LAST_SEEN_INTERVAL_MS = 24 * 60 * 60 * 1000;
@@ -12,39 +11,20 @@ export const LAST_SEEN_INTERVAL_MS = 24 * 60 * 60 * 1000;
 export async function handleSession(
   request: Request,
   env: Env,
+  context: IdContext,
 ): Promise<Response> {
-  const keys = await loadKeys(env);
-  const now = Date.now();
-  const claims = await readIdClaims(request, env, keys, now);
-
+  const { claims, now } = context;
   if (claims) {
-    const row = await env.DB.prepare(
-      `SELECT ids.status, ids.last_seen_at, names.display_name
-         FROM ids LEFT JOIN names ON names.id = ids.id
-        WHERE ids.id = ?`,
-    )
-      .bind(claims.sub)
-      .first<{
-        status: IdStatus;
-        last_seen_at: number;
-        display_name: string | null;
-      }>();
-    // A valid signature for a missing ID means the ID was deleted. Do not
-    // issue a new one here; the next call does, since the cookie is gone.
-    if (!row) {
-      return error(410, "id_deleted", { "Set-Cookie": clearIdCookie(env) });
-    }
-    if (now - row.last_seen_at >= LAST_SEEN_INTERVAL_MS) {
+    // For a deleted ID, do not issue a new one here; the next call does,
+    // since the response clears the cookie.
+    const account = await resolveAccount(env, claims);
+    if (account instanceof Response) return account;
+    if (now - account.lastSeenAt >= LAST_SEEN_INTERVAL_MS) {
       await env.DB.prepare("UPDATE ids SET last_seen_at = ? WHERE id = ?")
-        .bind(now, claims.sub)
+        .bind(now, account.id)
         .run();
     }
-    return idResponse(
-      env,
-      keys,
-      { id: claims.sub, name: row.display_name, status: row.status },
-      now,
-    );
+    return idResponse(env, context, account);
   }
 
   const { success } = await env.ISSUE_RATE_LIMITER.limit({
@@ -57,5 +37,5 @@ export async function handleSession(
   )
     .bind(id, now, now)
     .run();
-  return idResponse(env, keys, { id, name: null, status: "active" }, now);
+  return idResponse(env, context, { id, name: null, status: "active" });
 }

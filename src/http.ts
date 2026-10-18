@@ -40,6 +40,20 @@ function cookie(env: Env, value: string, maxAge: number): string {
   return `${env.COOKIE_NAME}=${value}${domain}; Path=/; Max-Age=${maxAge}; Secure; HttpOnly; SameSite=Lax`;
 }
 
+/** The request body as a JSON object, or null when it is not one. */
+export async function readJsonObject(
+  request: Request,
+): Promise<Record<string, unknown> | null> {
+  try {
+    const body: unknown = await request.json();
+    return typeof body === "object" && body !== null && !Array.isArray(body)
+      ? (body as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export function clientIp(request: Request): string {
   return request.headers.get("CF-Connecting-IP") ?? "unknown";
 }
