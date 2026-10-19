@@ -134,8 +134,8 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
 
 ## 進み具合
 
-- 本番環境（R3）: 2026-10-18 に Worker `kan-game`、D1 `kan-game-prod`、カスタムドメイン `kan-game.app` を作った。同日、TAKO-SEN が本番の Worker `tako` を出したので `GAME_TAKO` を足して出し直し、退会で `tako-prod` の `deleted_accounts` へ行が入ることを確かめた。予行の移行データ（旧 D1 の 11 人分）も取り込み済みで、R4 の前に空へ戻す（`docs/DEPLOY_PROD.md` の 4）
-- 本番の移行（R4）: 2026-10-19 に行う（移行期間の最終日は 2027-01-19）。noindex を本番から外し、規約とポリシーに制定日を入れる変更は、2026-10-18 に用意してある（`docs/DEPLOY_PROD.md` の 5）。**R4 の当日まで、本番へデプロイしない**（この変更が出て、本番が検索エンジンに載る）
+- 本番環境（R3）: 2026-10-18 に Worker `kan-game`、D1 `kan-game-prod`、カスタムドメイン `kan-game.app` を作った。同日、TAKO-SEN が本番の Worker `tako` を出したので `GAME_TAKO` を足して出し直し、退会で `tako-prod` の `deleted_accounts` へ行が入ることを確かめた。予行の移行データも取り込んで確かめた
+- 本番の移行（R4）: 2026-10-19 に済。予行のデータを消し、旧 D1 の 11 人分を取り込み、本番を検索エンジンに載せて規約とポリシーを公開した（`docs/DEPLOY_PROD.md` の 5）。移行期間（引き継ぎ用トークンの期限）の最終日は 2027-01-19
 
 ### R1
 
@@ -144,7 +144,8 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
 - TAKO-SEN との接続（R2）: `env.dev` の `GAME_TAKO`（Worker `tako-dev` の entrypoint `GameService`）は 2026-10-18 から有効。dev のポータルで退会すると、`tako-dev` の D1 の `deleted_accounts` へ行が入ることを確かめた。本番の Worker `tako`（D1 `tako-prod`）とのつなぎ方は、上の「本番環境（R3）」にある
   - binding の先の Worker が無いまま kan/game を出すと、退会が毎回 `503 deletion_incomplete` になる。ゲームを足すときは、ゲームの Worker を先に出す
 - ポータルとアカウント画面: 2026-10-18 に済。ローカルで、Playwright の 3 つのコンテキストを端末に見立てて、引き継ぎ、復旧、退会を確認した
-- 利用規約とプライバシーポリシー: 2026-10-18 に下書きを書き、利用者が確かめて直した。制定日は 2026 年 10 月 19 日で、R4 の当日に本番へ出す
-- 未着手: 実機の 2 端末（iPhone の Safari を含む）での確認（利用者が進めている）、Firefox と Safari が `__Secure-` の Cookie を `http://localhost` で受け付けるかの確認
+- 利用規約とプライバシーポリシー: 2026-10-18 に下書きを書き、利用者が確かめて直した。2026-10-19（制定日）に本番で公開した
+- 実機の 2 端末（iPhone の Safari を含む）での確認: 利用者が済ませた
+- 未着手: Firefox と Safari が `__Secure-` の Cookie を `http://localhost` で受け付けるかの確認
 
 段階を進めたらこの節を更新する。

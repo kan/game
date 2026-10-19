@@ -109,6 +109,8 @@ npx wrangler d1 execute kan-game-prod --env production --remote --command "DELET
 
 ## 5. 本番の移行（R4）の当日
 
+2026-10-19 に 1〜3 を済ませた（取り込みは 11 人分。本番の版は `4ad15cf0`）。消す前の書き出しは、作業したセッションの scratchpad に置いた。
+
 当日の順序の正本は TAKO-SEN の `docs/DEPLOY_PROD.md`「本番の移行（R4）」にある。kan/game 側の作業は次のとおり。どれも利用者の承認を得てから行う。
 
 1. 予行のデータを消す（この文書の 4）。TAKO-SEN の 1 と同じ時点で行う
