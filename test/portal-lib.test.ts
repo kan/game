@@ -3,10 +3,10 @@ import {
   callApi,
   errorMessage,
   formatRemaining,
+  gameUrl,
   groupCode,
   redeemPath,
   startSession,
-  takoSenUrl,
   TRANSFER_CODE_LIFETIME_MS as PORTAL_TRANSFER_LIFETIME_MS,
 } from "../public/assets/lib.js";
 import { normalizeCode } from "../src/codes";
@@ -91,12 +91,22 @@ describe("portal helpers", () => {
     );
   });
 
-  it("links TAKO-SEN for the portal's environment", () => {
-    expect(takoSenUrl("kan-game.app")).toBe("https://tako.kan-game.app/");
-    expect(takoSenUrl("dev.kan-game.app")).toBe(
+  it("links each game for the portal's environment", () => {
+    expect(gameUrl("tako-sen", "kan-game.app")).toBe(
+      "https://tako.kan-game.app/",
+    );
+    expect(gameUrl("tako-sen", "dev.kan-game.app")).toBe(
       "https://tako-dev.kan-game.app/",
     );
-    expect(takoSenUrl("localhost")).toBe("https://tako-dev.kan-game.app/");
+    expect(gameUrl("tako-sen", "localhost")).toBe(
+      "https://tako-dev.kan-game.app/",
+    );
+    expect(gameUrl("vegtab", "kan-game.app")).toBe(
+      "https://vegtab.kan-game.app/",
+    );
+    expect(gameUrl("vegtab", "dev.kan-game.app")).toBe(
+      "https://vegtab-dev.kan-game.app/",
+    );
   });
 });
 

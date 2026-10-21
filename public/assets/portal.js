@@ -1,10 +1,15 @@
 // The top page: keeps this device's ID alive and links to the games.
-import { startSession, takoSenUrl } from "./lib.js";
+import { gameUrl, startSession } from "./lib.js";
 
-const tako = /** @type {HTMLAnchorElement | null} */ (
-  document.querySelector("[data-game=tako-sen]")
-);
-if (tako) tako.href = takoSenUrl(location.hostname);
+for (const link of document.querySelectorAll("a[data-game]")) {
+  const game = /** @type {Parameters<typeof gameUrl>[0]} */ (
+    /** @type {HTMLAnchorElement} */ (link).dataset.game
+  );
+  /** @type {HTMLAnchorElement} */ (link).href = gameUrl(
+    game,
+    location.hostname,
+  );
+}
 
 // Issues or extends the ID. Failing is fine: the next visit retries.
 startSession();

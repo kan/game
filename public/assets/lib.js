@@ -81,15 +81,22 @@ export function redeemPath(typed) {
   return null;
 }
 
+/** Each game's subdomains: [production, development]. */
+const GAME_HOSTS = {
+  "tako-sen": ["tako", "tako-dev"],
+  vegtab: ["vegtab", "vegtab-dev"],
+};
+
 /**
- * TAKO-SEN's URL for the environment the portal runs in.
+ * A game's URL for the environment the portal runs in.
+ * @param {keyof typeof GAME_HOSTS} game
  * @param {string} hostname
  * @returns {string}
  */
-export function takoSenUrl(hostname) {
-  return hostname === "kan-game.app"
-    ? "https://tako.kan-game.app/"
-    : "https://tako-dev.kan-game.app/";
+export function gameUrl(game, hostname) {
+  const [production, development] = GAME_HOSTS[game];
+  const sub = hostname === "kan-game.app" ? production : development;
+  return `https://${sub}.kan-game.app/`;
 }
 
 /**
