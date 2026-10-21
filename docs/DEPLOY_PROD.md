@@ -10,9 +10,11 @@ kan/game の本番環境を作り、動かすための手順。
 | ホスト | `kan-game.app`（カスタムドメイン） |
 | Cookie | `__Secure-kg_id`（`Domain=kan-game.app`） |
 | `iss` | `kan-game.app` |
-| `ALLOWED_ORIGINS` | `https://tako.kan-game.app` |
+| `ALLOWED_ORIGINS` | `https://tako.kan-game.app,https://vegtab.kan-game.app` |
 | `PORTAL_ORIGIN` | `https://kan-game.app` |
-| ゲーム | `GAME_TAKO`（Worker `tako` の entrypoint `GameService`） |
+| ゲーム | `GAME_TAKO`（Worker `tako` の entrypoint `GameService`）、`GAME_VEGTAB`（Worker `vegtab-api-production` の entrypoint `GameService`） |
+
+**`vegtab-api-production` が `GameService` 付きで出る前に、`GAME_VEGTAB` 付きで出さない。** entrypoint が無く、退会が毎回 `503 deletion_incomplete` になる（`GAME_TAKO` と同じ理由。1 の 5 を参照）。dev の `vegtab-dev` も同じ。
 
 ## 1. 初回の作成（R3）
 
