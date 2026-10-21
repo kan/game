@@ -227,6 +227,12 @@ input:not([type]) {
   margin-top: 1.5rem;
 }
 
+/* A game's part inside an h3 section. */
+.document h4 {
+  font-size: 0.95rem;
+  margin: 1rem 0 0.25rem;
+}
+
 .document li {
   margin: 4px 0;
 }
