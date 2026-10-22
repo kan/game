@@ -78,7 +78,8 @@ main {
 
 .site-footer {
   display: flex;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 8px 16px;
   padding-top: 32px;
   padding-bottom: 32px;
   font-size: 0.875rem;
