@@ -14,7 +14,9 @@ kan/game の本番環境を作り、動かすための手順。
 | `PORTAL_ORIGIN` | `https://kan-game.app` |
 | ゲーム | `GAME_TAKO`（Worker `tako` の entrypoint `GameService`）、`GAME_VEGTAB`（Worker `vegtab-api-production` の entrypoint `GameService`） |
 
-**`vegtab-api-production` が `GameService` 付きで出る前に、`GAME_VEGTAB` 付きで出さない。** entrypoint が無く、退会が毎回 `503 deletion_incomplete` になる（`GAME_TAKO` と同じ理由。1 の 5 を参照）。dev の `vegtab-dev` も同じ。
+Vege-Table（vegtab#103）は、`GAME_VEGTAB` を足して dev へ 2026-10-21 に、本番へ 2026-10-22 に出した（本番の Version は `38c411b2`）。どちらも、vegtab の Worker（`vegtab-dev` / `vegtab-api-production`）が `GameService` 付きで出た後に出している。
+
+**ゲームを足すときは、そのゲームの Worker が `GameService` 付きで出てから `GAME_<名前>` 付きで出す。** 先に出すと entrypoint が無く、退会が毎回 `503 deletion_incomplete` になる（1 の 5 と同じ理由）。dev も同じ。
 
 ## 1. 初回の作成（R3）
 
