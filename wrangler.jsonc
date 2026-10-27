@@ -89,9 +89,9 @@
           "simple": { "limit": 5, "period": 60 },
         },
       ],
-      // The games' development Workers: TAKO-SEN (tako-dev.kan-game.app) and
-      // vegtab (vegtab-dev.kan-game.app). Each GameService entrypoint provides
-      // deleteAccount(id).
+      // The games' development Workers: TAKO-SEN (tako-dev.kan-game.app),
+      // vegtab (vegtab-dev.kan-game.app) and pujan (pujan-dev.kan-game.app).
+      // Each GameService entrypoint provides deleteAccount(id).
       "services": [
         {
           "binding": "GAME_TAKO",
@@ -103,14 +103,19 @@
           "service": "vegtab-dev",
           "entrypoint": "GameService",
         },
+        {
+          "binding": "GAME_PUJAN",
+          "service": "pujan-dev",
+          "entrypoint": "GameService",
+        },
       ],
       "vars": {
         "COOKIE_NAME": "__Secure-kgdev_id",
         "COOKIE_DOMAIN": "kan-game.app",
         "ISSUER": "dev.kan-game.app",
-        "ALLOWED_ORIGINS": "https://tako-dev.kan-game.app,https://vegtab-dev.kan-game.app",
+        "ALLOWED_ORIGINS": "https://tako-dev.kan-game.app,https://vegtab-dev.kan-game.app,https://pujan-dev.kan-game.app",
         "PORTAL_ORIGIN": "https://dev.kan-game.app",
-        "GAMES": "GAME_TAKO,GAME_VEGTAB",
+        "GAMES": "GAME_TAKO,GAME_VEGTAB,GAME_PUJAN",
         // JSON array of public JWKs, each with kid. To rotate, follow
         // docs/ID_DESIGN.md「鍵の管理」.
         "ID_PUBLIC_KEYS": "[{\"kid\":\"2026-10-18-2515ed\",\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"0KpEL8A2l9DupwZ2uVJVr_ZGy-sRbGJcJg-2Wwi8McU\",\"y\":\"yMVIO135BT3klr-T0Xtr4cRkdkAvfkwxAMaTzoH5EC4\"}]",
