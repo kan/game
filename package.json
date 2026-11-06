@@ -12,7 +12,8 @@
     "cf-typegen": "wrangler types --strict-vars=false",
     "generate-key": "node scripts/generate-signing-key.mjs",
     "generate-vectors": "node scripts/generate-test-vectors.mjs && prettier --write test-vectors",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "engines": {
     "node": ">=22.18"

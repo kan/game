@@ -22,12 +22,15 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
 | `npm test`             | テスト（Workers のランタイム上で、ローカルの D1 に対して実行）           |
 | `npm run typecheck`    | 型検査（`tsc --noEmit`）                                                 |
 | `npm run format`       | Prettier で整形（`docs/` と生成ファイルは対象外）                        |
+| `npm run format:check` | Prettier で整形済みかを検査する（対象は `format` と同じ）                |
 | `npm run cf-typegen`   | `wrangler.jsonc` から `worker-configuration.d.ts` を作り直す             |
 | `npm run generate-key` | 署名鍵（P-256）を作る。`-- --dev-vars` でローカル用の `.dev.vars` を書く |
 | `npm run dev`          | `wrangler dev`（`http://localhost:8787`）                                |
 | `npm run deploy:dev`   | `dev.kan-game.app` へデプロイ                                            |
 
-変更後は `npm run typecheck`、`npm test`、`npx prettier --check .` を通す。
+変更後は `npm run typecheck`、`npm test`、`npm run format:check` を通す。`.github/workflows/ci.yml` が main への push と PR で同じ 3 つを回す。デプロイは CI に入れず、手元で行う。依存の更新は Dependabot（`.github/dependabot.yml`）が npm と GitHub Actions のそれぞれで週に 1 度、1 本の PR にまとめて出す。
+
+action の `uses:` は完全な版のタグ（`@v7.0.1`）で書き、実際に動く commit は `.github/workflows/actions.lock` が固定する。lockfile は手で編集しない。`uses:` を変えたら repo のルートで `gh actions-lock` を実行し、workflow と一緒にコミットする。lockfile は `verify-lockfile.yml` が検査する。運用の正本は kan/dotfiles の `docs/github-actions.md`。
 
 ## ファイル構成
 
