@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- NYORO-RIN: a snake holding its own tail (DESIGN.md chapter 10).
+       The body is a circle round (32, 34) of radius 20, going clockwise
+       from the tail's tip to the head at the top; the tail narrows in
+       steps toward the tip. -->
+  <g fill="none" stroke="#3f9e4d" stroke-linecap="round">
+    <path stroke-width="3" d="M42 16.68A20 20 0 1 1 32 14" />
+    <path stroke-width="5" d="M47.32 21.14A20 20 0 1 1 32 14" />
+    <path stroke-width="7" d="M50.13 25.55A20 20 0 1 1 32 14" />
+    <path stroke-width="9" d="M51.92 32.26A20 20 0 1 1 32 14" />
+  </g>
+  <ellipse cx="33" cy="14.2" rx="8.5" ry="6.6" fill="#3f9e4d" />
+  <circle cx="35.6" cy="11.4" r="2.2" fill="#fff" />
+  <circle cx="36.4" cy="11.4" r="1.2" fill="#1d2a22" />
+</svg>

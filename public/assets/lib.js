@@ -85,6 +85,7 @@ export function redeemPath(typed) {
 const GAME_HOSTS = {
   "tako-sen": ["tako", "tako-dev"],
   vegtab: ["vegtab", "vegtab-dev"],
+  "nyoro-rin": ["nyoro", "nyoro-dev"],
 };
 
 /**

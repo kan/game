@@ -107,6 +107,12 @@ describe("portal helpers", () => {
     expect(gameUrl("vegtab", "dev.kan-game.app")).toBe(
       "https://vegtab-dev.kan-game.app/",
     );
+    expect(gameUrl("nyoro-rin", "kan-game.app")).toBe(
+      "https://nyoro.kan-game.app/",
+    );
+    expect(gameUrl("nyoro-rin", "dev.kan-game.app")).toBe(
+      "https://nyoro-dev.kan-game.app/",
+    );
   });
 });
 
