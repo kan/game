@@ -19,10 +19,10 @@
     "node": ">=22.18"
   },
   "devDependencies": {
-    "@cloudflare/vitest-plugin": "^1.4.11",
+    "@cloudflare/vitest-plugin": "^1.6.0",
     "prettier": "^3.9.10",
     "typescript": "^7.0.2",
-    "vitest": "^5.0.5",
+    "vitest": "^5.1.0",
     "wrangler": "^4.151.1"
   }
 }
