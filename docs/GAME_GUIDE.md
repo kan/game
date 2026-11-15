@@ -15,9 +15,9 @@ kan-game.app で動くゲームに共通の構成と、実装の注意をまと�
 | NYORO-RIN | `kan/nyoro-rin` | `nyoro.kan-game.app`（Worker `nyoro`） | `nyoro-dev.kan-game.app` | 1 パッケージ | `GAME_NYORO` |
 | Pu-Jan | `kan/pujan` | 未公開 | `pujan-dev.kan-game.app` | workspace（`engine` / `frontend` / `backend`） | `GAME_PUJAN`（dev だけ） |
 
-**新しいゲームは NYORO-RIN を手本にする。** TAKO-SEN を手本に後から作ったので、TAKO-SEN で後から分かった改良を初めから持ち、画面とルーティングの分け方も整理されている。TAKO-SEN にしか無い機能（デイリー、週間ランキング、通知、実績）は TAKO-SEN を見る。
+kan-game.app のゲームの基本形は、TAKO-SEN と NYORO-RIN の構成（1 パッケージ）とする。**新しいゲームは NYORO-RIN を手本にする。** NYORO-RIN は TAKO-SEN を手本に後から作ったので、TAKO-SEN で後から分かった改良を初めから持ち、画面とルーティングの分け方も整理されている。TAKO-SEN にしか無い機能（デイリー、週間ランキング、通知、実績）は TAKO-SEN を見る。ゲームの間で共通にする部品（kan/game#3）も、この構成から使う形を基準にする。
 
-Vege-Table と Pu-Jan は、独立したアプリとして作ってから合流したので、workspace の構成と Hono を使う。合わせ方は同じで、置き場所が違うだけである（`src/worker/` の代わりに `backend/src/`）。
+Vege-Table と Pu-Jan は、独立したアプリとして作ってから合流したので、workspace の構成と Hono を使う。ID 基盤とのつなぎ方は同じで、置き場所が違う（`src/worker/` の代わりに `backend/src/`）。Vege-Table は、ゲームのモードを足す前に基本形へそろえる（kan/vegtab#125）。Pu-Jan をそろえるかは、まだ決めていない。
 
 ## 全体の構成
 
@@ -298,3 +298,4 @@ kan/game の設定を変える作業は、ゲームの repo の作業とは分�
 | kan/vegtab | #122 | `compatibility_date`、`observability`、Dependabot の cooldown |
 | kan/vegtab | #123 | 送れなかったスコアのキューの上限 |
 | kan/vegtab | #124 | ライセンス一覧の改良と、Service Worker の一覧の検査 |
+| kan/vegtab | #125 | コードの構成を基本形（1 パッケージ）にそろえる |
