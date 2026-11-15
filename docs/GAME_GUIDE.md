@@ -17,7 +17,7 @@ kan-game.app で動くゲームに共通の構成と、実装の注意をまと�
 
 kan-game.app のゲームの基本形は、TAKO-SEN と NYORO-RIN の構成（1 パッケージ）とする。**新しいゲームは NYORO-RIN を手本にする。** NYORO-RIN は TAKO-SEN を手本に後から作ったので、TAKO-SEN で後から分かった改良を初めから持ち、画面とルーティングの分け方も整理されている。TAKO-SEN にしか無い機能（デイリー、週間ランキング、通知、実績）は TAKO-SEN を見る。ゲームの間で共通にする部品（kan/game#3）も、この構成から使う形を基準にする。
 
-Vege-Table と Pu-Jan は、独立したアプリとして作ってから合流したので、workspace の構成と Hono を使う。ID 基盤とのつなぎ方は同じで、置き場所が違う（`src/worker/` の代わりに `backend/src/`）。Vege-Table は、ゲームのモードを足す前に基本形へそろえる（kan/vegtab#125）。Pu-Jan をそろえるかは、まだ決めていない。
+Vege-Table と Pu-Jan は、独立したアプリとして作ってから合流したので、workspace の構成と Hono を使う。ID 基盤とのつなぎ方は同じで、置き場所が違う（`src/worker/` の代わりに `backend/src/`）。Vege-Table は、ゲームのモードを足す前に基本形へそろえる（kan/vegtab#125）。Pu-Jan は正式に公開するかが決まっていないので、今はそろえる対象にしない。
 
 ## 全体の構成
 
@@ -58,7 +58,7 @@ docs/         DESIGN.md、DATA_CONTRACT.md、DEPLOY.md
 AGENTS.md     エージェント向けの規則（仕様は書かず、docs/ を正とする）
 ```
 
-- `src/worker/main.ts` を `wrangler.jsonc` の `main` にし、`index.ts` の default export と `GameService` をここで export する。`GameService` は `cloudflare:workers` を import するので Workers のランタイムでしか読めず、`index.ts` を Node のテストから import できるようにするため
+- Worker の entrypoint は、default export（HTTP と定期実行）と、名前付き export の `GameService`（`WorkerEntrypoint` を継承したクラス）の 2 つを持つ。TAKO-SEN と NYORO-RIN は `src/worker/main.ts` で 2 つを export し、`index.ts` と分けている。`GameService` が `cloudflare:workers` を import するので、Node で動かす今のテストから `index.ts` を読めるようにするためである。テストを `@cloudflare/vitest-plugin` に移せば（「テスト」の節）、分ける必要はなくなる
 - `App.vue` に画面を詰め込まない。NYORO-RIN は画面を `MenuDialog.vue` などに、処理を composable（`use-play.ts`、`use-online.ts` など）に分けている。TAKO-SEN の `App.vue` は 3000 行を超えている
 - 文書は、ゲームのルールと設計の正本（`DESIGN.md`）、ID、保存データ、API、D1 の契約（`DATA_CONTRACT.md`）、デプロイの手順（`DEPLOY.md`）に分ける。AGENTS.md には仕様を写さず、規則と開発の知見だけを書く
 
@@ -236,7 +236,10 @@ dev は検索エンジンに載せない。NYORO-RIN がこの形で、TAKO-SEN�
 ## テスト
 
 - コア: ルール、Solver、Generator、難易度、保存の形式。Generator の版ごとの盤面は固定ハッシュのテストで守る
-- Worker: TAKO-SEN と NYORO-RIN は `wrangler` の `getPlatformProxy` で D1 を動かし、マイグレーションを当ててから API を呼ぶ。共通の準備は 1 つのファイルにまとめる（NYORO-RIN の `tests/worker-env.ts`）。vegtab と kan/game は `@cloudflare/vitest-plugin` で Workers のランタイム上で動かす
+- Worker: `@cloudflare/vitest-plugin` で、Workers のランタイム（workerd）の上で動かす。設定は kan/game の `vitest.config.ts` と同じ形で、`cloudflareTest()` に `wrangler.jsonc` を読ませ、マイグレーションは `readD1Migrations` と `applyD1Migrations` で当てる。コアと画面のテストは、vitest の別の project にして Node で動かす
+  - kan/game、vegtab、Pu-Jan はこの方式になっている。TAKO-SEN と NYORO-RIN は `wrangler` の `getPlatformProxy` で D1 だけを用意して Node で動かしていて、この方式へ移す（kan/tako-sen#32、kan/nyoro-rin#15）
+  - API を呼ぶ補助（`call`、`post`、env の差し替え）は 1 つのファイルにまとめる（kan/game の `test/helpers.ts`、NYORO-RIN の `tests/worker-env.ts`）
+  - 注意は kan/game の AGENTS.md の「テスト」と「開発上の知見」にある（旧名の `@cloudflare/vitest-pool-workers` を入れない、Rate Limiting の数はテストファイルをまたいで共有される、など）
 - ID: 写した `testing/` の偽物と Cookie で、本物と同じ経路を通す。認証を差し替えるモックだけで済ませない
 - テスト用の `wrangler.jsonc` の `database_id` は、本物の ID でなくダミー（`00000000-...`）にする
 - 退会: `ACCOUNT_TABLES` の網羅、退会済みの ID の書き込みを断ること、何度呼んでも同じ結果になること
@@ -287,10 +290,12 @@ kan/game の設定を変える作業は、ゲームの repo の作業とは分�
 | kan/tako-sen | #29 | `ACCOUNT_TABLES` の網羅のテスト、退会者の掃除の定期実行 |
 | kan/tako-sen | #30 | 保存済みの ID を持つ端末の再確認 |
 | kan/tako-sen | #31 | 問題別ランキングの `isSelf` |
+| kan/tako-sen | #32 | Worker のテストを `@cloudflare/vitest-plugin` に移す |
 | kan/nyoro-rin | #11 | ライセンス一覧に TAKO-SEN の改良を戻す |
 | kan/nyoro-rin | #12 | `ACCOUNT_TABLES` の網羅のテスト |
 | kan/nyoro-rin | #13 | 盤面を作る Web Worker の返答の期限、振動の例外 |
 | kan/nyoro-rin | #14 | 写し元のコミットを AGENTS.md に書く |
+| kan/nyoro-rin | #15 | Worker のテストを `@cloudflare/vitest-plugin` に移す |
 | kan/vegtab | #118 | ランキングの応答からほかの人の ID を外す |
 | kan/vegtab | #119 | スコアの送信などの回数の制限 |
 | kan/vegtab | #120 | 画面のヘッダー、dev の noindex、API の `no-store` とエラーの扱い |
