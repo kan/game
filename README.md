@@ -28,6 +28,8 @@ kan-game.app のポータルと ID 基盤の Worker。
 
 ## ゲームから使う
 
+ゲームの構成、ID 基盤とのつなぎ方、実装の注意は [`docs/GAME_GUIDE.md`](docs/GAME_GUIDE.md) にまとめてある。
+
 各ゲームは次のファイルを書き換えずに写す（`kan/game` は private なので npm の依存にしない）。
 
 - `src/token.ts`: Cookie の検証。写したら `test-vectors/id-token.json` も写し、`test/vectors.test.ts` と同じ照合をゲームのテストに入れる

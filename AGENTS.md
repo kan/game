@@ -1,7 +1,9 @@
 # kan-game — Agent 向け開発ガイド
 
 kan-game.app のポータルと、各ゲームが共通に使う匿名 ID の基盤（ID 基盤）を 1 つの Cloudflare Worker で提供するリポジトリ。
-最初の利用者は TAKO-SEN（`~/tako-sen`）で、vegtab は後から合流する。
+利用するゲームは TAKO-SEN（`~/tako-sen`）、Vege-Table（`~/vegtab`）、NYORO-RIN（`~/nyoro-rin`）、Pu-Jan（`~/pujan`、dev だけ）。
+
+**ゲームの側の構成と実装の注意は [`docs/GAME_GUIDE.md`](docs/GAME_GUIDE.md) にまとめてある。** 新しいゲームを足すとき、ゲームとの契約（写し、RPC、退会）を変えるときは読む。ゲームの作りが変わったら、`GAME_GUIDE.md` も直す。
 
 ## 仕様の参照先
 
@@ -55,7 +57,7 @@ action の `uses:` は完全な版のタグ（`@v7.0.1`）で書き、実際に�
 | `migrations/`                       | D1 のスキーマ。設計書の全テーブルを `0001_initial.sql` に持つ                                                                                                                                                                                                                                     |
 | `public/`                           | ポータルの画面（Workers Static Assets）。トップ（`index.html`）、アカウント画面（`account.html`）、利用規約とプライバシーポリシー、404、`_headers`（CSP など）                                                                                                                                    |
 | `public/favicon.svg` ほか           | アイコン（デフォルメしたゲームコントローラ）。`favicon.svg` が元で、`favicon-32.png` と `apple-touch-icon.png`（180px）はそこから描き出したもの。ヘッダーのロゴにも `favicon.svg` を使う。描き直したら PNG も作り直す                                                                             |
-| `public/assets/games/`              | トップのゲームの一覧に出す各ゲームのアイコン。`tako-sen.svg` は TAKO-SEN の `public/tako.svg`（55bc12e）の写しで、TAKO-SEN がアイコンを変えたら写し直す。ゲームの一覧には、`kan-game.app` に合流したゲームだけを載せる（vegtab は合流するまで載せない）                                           |
+| `public/assets/games/`              | トップのゲームの一覧に出す各ゲームのアイコン。`tako-sen.svg` は TAKO-SEN の `public/tako.svg`（55bc12e）の写しで、TAKO-SEN がアイコンを変えたら写し直す。ゲームの一覧には、本番の `kan-game.app` に出したゲームだけを載せる（dev だけの Pu-Jan は載せない）                                       |
 | `public/assets/lib.js`              | 画面の処理のうち DOM に触れない部分（API の呼び出し、エラーの文言、コードの区切り、入力したコードの種類の判定）。`test/portal-lib.test.ts` で試す。今はポータル専用で、ゲームへ写す前提のファイル（`src/token.ts` など）とは扱いが違う                                                            |
 | `public/assets/account.js`          | アカウント画面の動作（引き継ぎコード、復旧コード、コードの入力、退会）                                                                                                                                                                                                                            |
 | `scripts/generate-signing-key.mjs`  | 鍵の生成                                                                                                                                                                                                                                                                                          |
@@ -76,7 +78,7 @@ action の `uses:` は完全な版のタグ（`@v7.0.1`）で書き、実際に�
   - 名前の規則や RPC の結果（`src/names.ts`）を変えたら、`testing/fake-id-platform.ts` の偽物と名前の規則も合わせて直し、契約テストのケースを足す。契約テストは同じケースを本物と偽物に流して結果を比べるので、片方だけ直すと落ちる
   - トークンの形式（`src/token.ts` の `signIdToken`）を変えたら、`testing/test-id-cookie.ts` も合わせる
   - 直したら、写しを各ゲームへ配る
-- ゲームを足すときは、`GAME_<名前>` の service binding と、環境変数 `GAMES` への列挙を、環境ごと（先頭と `env.dev`）に両方書く。`GAMES` に列挙した binding が無いと退会は失敗する
+- ゲームを足すときは、`GAME_<名前>` の service binding と、環境変数 `GAMES` への列挙を、環境ごと（`env.dev` と `env.production`）に両方書く。ローカル（先頭）の `GAMES` は空にしてあり、ローカルで退会の連携を確かめるときだけ足す。`GAMES` に列挙した binding が無いと退会は失敗する。足す順序とポータル、プライバシーポリシーの更新は `docs/GAME_GUIDE.md`「新しいゲームを足す手順」にある
 - `/api/id/*` の API は `src/router.ts` の `ID_ROUTES` に足す。`POST` の限定、`Origin` の確認、鍵の読み込み、Cookie の検証はルーターが行うので、handler で繰り返さない
   - 要 ID の API は `requireId(handler)` で包んで登録する。`401 no_id` と `410 id_deleted` は `requireId` が返し、handler は ID の行（`context.account`）を受け取る。退会の途中の ID を断る API は `requireActiveId` で包む（`409 id_deleting` も返す）
   - それ以外の handler は `context.claims`（検証済みの Cookie、無ければ null）を受け取る。その ID が退会済みかは確かめていないので、要るなら `resolveAccount` を呼ぶ
