@@ -3,7 +3,7 @@
 kan-game.app で動くゲームに共通の構成と、実装の注意をまとめる。新しいゲームを足すときと、既存のゲームの間で実装をそろえるときに読む。
 
 - ID 基盤そのものの仕様（API、Cookie、鍵、退会の流れ）は [`ID_DESIGN.md`](ID_DESIGN.md) を正とする。この文書は、ゲームの側から見た使い方だけを書く
-- 各ゲームのルールと契約は、それぞれの repo の `docs/DESIGN.md`（vegtab と Pu-Jan は `docs/SPEC.md`）と `docs/DATA_CONTRACT.md` を正とする
+- 各ゲームのルールと契約は、それぞれの repo の `docs/DESIGN.md`（Pu-Jan は `docs/SPEC.md`）と `docs/DATA_CONTRACT.md` を正とする
 - ここに書いた内容は 2026-11-16 に TAKO-SEN、NYORO-RIN、Vege-Table のコードを比べてまとめた。ゲームの側で作りを変えたら、この文書も直す
 
 ## ゲームの一覧
@@ -11,13 +11,16 @@ kan-game.app で動くゲームに共通の構成と、実装の注意をまと�
 | ゲーム | repo | 本番 | dev | 構成 | kan/game の binding |
 |---|---|---|---|---|---|
 | TAKO-SEN | `kan/tako-sen` | `tako.kan-game.app`（Worker `tako`） | `tako-dev.kan-game.app` | 1 パッケージ | `GAME_TAKO` |
-| Vege-Table | `kan/vegtab` | `vegtab.kan-game.app`（Worker `vegtab-api-production`） | `vegtab-dev.kan-game.app` | workspace（`engine` / `frontend` / `backend`） | `GAME_VEGTAB` |
+| Vege-Table | `kan/vegtab` | `vegtab.kan-game.app`（Worker `vegtab-api-production`） | `vegtab-dev.kan-game.app` | 1 パッケージ | `GAME_VEGTAB` |
 | NYORO-RIN | `kan/nyoro-rin` | `nyoro.kan-game.app`（Worker `nyoro`） | `nyoro-dev.kan-game.app` | 1 パッケージ | `GAME_NYORO` |
 | Pu-Jan | `kan/pujan` | 未公開 | `pujan-dev.kan-game.app` | workspace（`engine` / `frontend` / `backend`） | `GAME_PUJAN`（dev だけ） |
 
 kan-game.app のゲームの基本形は、TAKO-SEN と NYORO-RIN の構成（1 パッケージ）とする。**新しいゲームは NYORO-RIN を手本にする。** NYORO-RIN は TAKO-SEN を手本に後から作ったので、TAKO-SEN で後から分かった改良を初めから持ち、画面とルーティングの分け方も整理されている。TAKO-SEN にしか無い機能（デイリー、週間ランキング、通知、実績）は TAKO-SEN を見る。ゲームの間で共通にする部品（kan/game#3）も、この構成から使う形を基準にする。
 
-Vege-Table と Pu-Jan は、独立したアプリとして作ってから合流したので、workspace の構成と Hono を使う。ID 基盤とのつなぎ方は同じで、置き場所が違う（`src/worker/` の代わりに `backend/src/`）。Vege-Table は、ゲームのモードを足す前に基本形へそろえる（kan/vegtab#125）。Pu-Jan は正式に公開するかが決まっていないので、今はそろえる対象にしない。
+Vege-Table と Pu-Jan は、独立したアプリとして作ってから合流した。
+
+- Vege-Table は、workspace の構成と Hono をやめて基本形にそろえた（kan/vegtab#125）。Worker は素の `fetch` とルートの表で、Hono と zod は使わない。画面は Vue に Pinia と vue-i18n を加えて使う。URL を持つ画面があるので、vue-router の代わりに自前の router（`src/ui/lib/router.ts`）を持つ
+- Pu-Jan は workspace の構成と Hono を使い、ID 基盤とのつなぎ方は同じで置き場所が違う（`src/worker/` の代わりに `backend/src/`）。正式に公開するかが決まっていないので、今はそろえる対象にしない
 
 ## 全体の構成
 
@@ -39,7 +42,7 @@ kan-game（ID 基盤）── binding GAME_<名前> ─> ゲームの Worker の
 ### 守ること
 
 - ID が無くても、通信できなくても遊べるようにする。問題の生成とプレイは端末で完結させ、サーバーは記録の検証、ランキング、デイリーの配布だけを受け持つ
-- パズルの判定はコア（`src/core/` / `engine/`）に置き、画面と Worker から同じものを呼ぶ。Worker で判定を書き直さない。サーバーが記録を確かめるときは、コアでシードから盤面を作り直す
+- パズルの判定はコア（`src/core/`。Pu-Jan は `engine/`）に置き、画面と Worker から同じものを呼ぶ。Worker で判定を書き直さない。サーバーが記録を確かめるときは、コアでシードから盤面を作り直す
 - 所有権の証明は ID の Cookie だけで行う。端末で作った匿名の ID や、本文に書かれた ID を信じない
 - ほかの人の ID（`account_id`）を応答に出さない。自分の行は、サーバーで比べて `isSelf` だけを返す。ポータルの画面も ID を表示しない。プライバシーポリシー（`public/privacy.html`）は「ID は公開しない」と書いている
 
@@ -70,11 +73,11 @@ kan/game の次のファイルを、書き換えずに写す。
 
 | 写し元（kan/game） | 写し先（NYORO-RIN、TAKO-SEN） | 写し先（vegtab） | 用途 |
 |---|---|---|---|
-| `src/token.ts` | `src/worker/id-token.ts` | `backend/src/lib/id-token.ts` | Cookie の検証 |
-| `src/rpc.ts` | `src/worker/id-rpc.ts` | `backend/src/lib/id-rpc.ts` | `ID` binding の型と `GameService` の契約 |
-| `testing/fake-id-platform.ts` | `tests/kan-game/` | `backend/test/kan-game/` | テスト用の `IdRpc` の偽物 |
-| `testing/test-id-cookie.ts` | `tests/kan-game/` | `backend/test/kan-game/` | テスト用の鍵と Cookie |
-| `test-vectors/id-token.json` | `tests/id-token-vectors.json` | `backend/test/kan-game/id-token-vectors.json` | 写した `id-token.ts` の照合 |
+| `src/token.ts` | `src/worker/id-token.ts` | `src/worker/lib/id-token.ts` | Cookie の検証 |
+| `src/rpc.ts` | `src/worker/id-rpc.ts` | `src/worker/lib/id-rpc.ts` | `ID` binding の型と `GameService` の契約 |
+| `testing/fake-id-platform.ts` | `tests/kan-game/` | `tests/worker/kan-game/` | テスト用の `IdRpc` の偽物 |
+| `testing/test-id-cookie.ts` | `tests/kan-game/` | `tests/worker/kan-game/` | テスト用の鍵と Cookie |
+| `test-vectors/id-token.json` | `tests/id-token-vectors.json` | `tests/worker/kan-game/id-token-vectors.json` | 写した `id-token.ts` の照合 |
 
 - 写したら、kan/game の `test/vectors.test.ts` と同じ照合をゲームのテストに入れる
 - AGENTS.md に、写しのファイルの一覧と写し元のコミットを書く。kan/game が変わったとき、`git log <コミット>.. -- src/token.ts src/rpc.ts testing test-vectors` で写し直しが要るかを確かめられる。今の写しはどのゲームも kan/game の `258c299` と一致する
@@ -133,7 +136,7 @@ kan/game の次のファイルを、書き換えずに写す。
 - 本文は上限つきで読む（`readLimitedBody`）。`Content-Type` の確認と JSON の解析は `readJsonBody` にまとめ、`415` と `400` を API ごとに書かない
 - ルートは表で持つ（NYORO-RIN の `ACCOUNT_ROUTES`）。if の連鎖にすると、メソッドの許可や制限の付け忘れが見えにくい
 - `Origin` の確認: POST は許可したオリジンを必須にする。`Origin` の無い GET は通す。`ALLOWED_ORIGINS` が空なら `503`
-- 予期しない例外は `500` と `{ "error": "internal_error" }` にし、ログに出す（Hono なら `app.onError`）
+- 予期しない例外は `500` と `{ "error": "internal_error" }` にし、ログに出す。vegtab は `src/worker/main.ts` の `fetch` で例外を拾い、ログに `unhandled_error` を出す。Hono を使う Pu-Jan は `app.onError` で行う
 
 ### 回数の制限
 
@@ -150,14 +153,14 @@ kan/game の次のファイルを、書き換えずに写す。
 - 端末の完了記録は、名前を決める前から送ってよい。ランキングに載せるのは、名前と公開への同意を設定した後のクリアだけにする
 - 同意の版は定数にし、SQL に直接書かない（NYORO-RIN の `RANKING_CONSENT_VERSION`）
 - 問題 ID の形式の確認は 1 つの関数にする（NYORO-RIN の `isPuzzleId()`）
-- 記録の正しさは、シードから作り直した盤面と照合して確かめる。TAKO-SEN と NYORO-RIN は解の照合で、時間とヒントの回数は申告値として扱う。vegtab は操作列を engine で再生して確かめる
+- 記録の正しさは、シードから作り直した盤面と照合して確かめる。TAKO-SEN と NYORO-RIN は解の照合で、時間とヒントの回数は申告値として扱う。vegtab は操作列をコア（`src/core/`）で再生して確かめる
 - ランキングは、応答に ID を入れず、Cookie があれば `isSelf` を付ける。Cookie が無くても読めるようにする
 
 ### デイリー
 
 - 日付は日本時間の暦日（UTC+9 固定）で、0 時に切り替える
 - 盤面はサーバーで作って D1 に置き、画面へは正解を含まないスナップショットを配る
-- **seed を日付から計算できる形にしない。** repo を公開しているので、日付だけで作ると、先の日の盤面を誰でも前もって解ける。vegtab の `backend/src/lib/seed.ts`（kan/vegtab#116）のように、Worker の secret の HMAC（`HMAC-SHA256(secret, "<game>-daily:<日付>")`）から作る。TAKO-SEN は日付から作っていて、kan/tako-sen#23 で直す
+- **seed を日付から計算できる形にしない。** repo を公開しているので、日付だけで作ると、先の日の盤面を誰でも前もって解ける。vegtab の `src/worker/lib/seed.ts`（kan/vegtab#116）のように、Worker の secret の HMAC（`HMAC-SHA256(secret, "<game>-daily:<日付>")`）から作る。TAKO-SEN は日付から作っていて、kan/tako-sen#23 で直す
 - 前日のうちに作っておくのはよい。当日より先の日の盤面や seed は返さない
 - 盤面の版は通常の問題と分け、凍結する。作り方を変えるときは版を上げ、切り替えの日より前の日は旧版のまま残す
 
@@ -220,7 +223,7 @@ https://<game>-dev.kan-game.app/*
   X-Robots-Tag: noindex
 ```
 
-dev は検索エンジンに載せない。NYORO-RIN がこの形で、TAKO-SEN（kan/tako-sen#26）と vegtab（kan/vegtab#120）は足りない。
+dev は検索エンジンに載せない。NYORO-RIN と vegtab がこの形で、TAKO-SEN は足りない（kan/tako-sen#26）。
 
 ## ローカルの開発
 
@@ -296,11 +299,4 @@ kan/game の設定を変える作業は、ゲームの repo の作業とは分�
 | kan/nyoro-rin | #13 | 盤面を作る Web Worker の返答の期限、振動の例外 |
 | kan/nyoro-rin | #14 | 写し元のコミットを AGENTS.md に書く |
 | kan/nyoro-rin | #15 | Worker のテストを `@cloudflare/vitest-plugin` に移す |
-| kan/vegtab | #118 | ランキングの応答からほかの人の ID を外す |
-| kan/vegtab | #119 | スコアの送信などの回数の制限 |
-| kan/vegtab | #120 | 画面のヘッダー、dev の noindex、API の `no-store` とエラーの扱い |
-| kan/vegtab | #121 | ホーム画面に追加、`vite:preloadError`、版の表示 |
-| kan/vegtab | #122 | `compatibility_date`、`observability`、Dependabot の cooldown |
-| kan/vegtab | #123 | 送れなかったスコアのキューの上限 |
-| kan/vegtab | #124 | ライセンス一覧の改良と、Service Worker の一覧の検査 |
-| kan/vegtab | #125 | コードの構成を基本形（1 パッケージ）にそろえる |
+| kan/vegtab | #125 | コードの構成を基本形（1 パッケージ）にそろえる。段階 4（API と画面の作り）の残り |
