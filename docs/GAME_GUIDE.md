@@ -299,4 +299,3 @@ kan/game の設定を変える作業は、ゲームの repo の作業とは分�
 | kan/nyoro-rin | #13 | 盤面を作る Web Worker の返答の期限、振動の例外 |
 | kan/nyoro-rin | #14 | 写し元のコミットを AGENTS.md に書く |
 | kan/nyoro-rin | #15 | Worker のテストを `@cloudflare/vitest-plugin` に移す |
-| kan/vegtab | #125 | コードの構成を基本形（1 パッケージ）にそろえる。段階 4（API と画面の作り）の残り |
