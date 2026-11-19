@@ -74,6 +74,8 @@ npx wrangler d1 migrations apply DB --env production --remote   # マイグレ�
 npm run deploy:production
 ```
 
+`deploy:production` は、出し終えたら `production` タグを今のコミット（HEAD）へ動かし、出した日時のタグ `production-<UTC の日時>` も足して push する（`tag:production`）。kan/dotfiles の `gh-blog-diff` が、本番に出た変更をこれらのタグから拾うため。コミットしてから出す。タグの push だけが失敗したときは、出したコミットで `npm run tag:production` を実行し直す。
+
 署名鍵の入れ替えは `ID_DESIGN.md`「鍵の管理」の順に行う。新しい秘密鍵も、1 の手順 2、4 のように `--secrets-file` で渡す。
 
 ## 3. 移行データの取り込み（R3 の予行と R4 の本番）

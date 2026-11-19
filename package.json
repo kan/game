@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy:dev": "wrangler deploy --env dev",
-    "deploy:production": "wrangler deploy --env production",
+    "deploy:production": "wrangler deploy --env production && npm run tag:production",
+    "tag:production": "node -e \"const{execSync:x}=require('child_process');const t='production-'+new Date().toISOString().replace(/[-:]/g,'').slice(0,15);x('git tag -f production');x('git tag '+t);x('git push -f origin refs/tags/production refs/tags/'+t,{stdio:'inherit'})\"",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.public.json",
     "test": "vitest run",
     "cf-typegen": "wrangler types --strict-vars=false",
