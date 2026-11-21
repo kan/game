@@ -313,23 +313,12 @@ kan/game の設定を変える作業は、ゲームの repo の作業とは分�
 
 ## ゲームの間で残っているずれ
 
-2026-11-16 の比較で見つけたもので、それぞれの repo に issue を立てた。直したらこの表から消す。
+それぞれの repo に issue を立てた。直したらこの表から消す。2026-11-16 の比較で見つけたもの（kan/tako-sen#23〜#32、kan/nyoro-rin#11〜#15）は、2026-11-22 までにすべて閉じた。
 
 | repo | issue | 内容 |
 |---|---|---|
-| kan/game | #3 | ゲームの間でほぼ同じコードを、写しとして配る範囲を広げるか決める |
-| kan/tako-sen | #23 | デイリーの seed を日付から計算できない形にする |
-| kan/tako-sen | #24 | 記録の送信で、再送の照合と回数の制限を盤面の作り直しより前に行う |
-| kan/tako-sen | #25 | 同意の版、パズル ID の形式、本文の読み込みを 1 か所にまとめる |
-| kan/tako-sen | #26 | 画面の応答のセキュリティのヘッダー |
-| kan/tako-sen | #27 | CI の format の検査、型検査の対象、npm script |
-| kan/tako-sen | #28 | 写しの一覧と写し元のコミットを AGENTS.md に書く |
-| kan/tako-sen | #29 | `ACCOUNT_TABLES` の網羅のテスト、退会者の掃除の定期実行 |
-| kan/tako-sen | #30 | 保存済みの ID を持つ端末の再確認 |
-| kan/tako-sen | #31 | 問題別ランキングの `isSelf` |
-| kan/tako-sen | #32 | Worker のテストを `@cloudflare/vitest-plugin` に移す |
-| kan/nyoro-rin | #11 | ライセンス一覧に TAKO-SEN の改良を戻す |
-| kan/nyoro-rin | #12 | `ACCOUNT_TABLES` の網羅のテスト |
-| kan/nyoro-rin | #13 | 盤面を作る Web Worker の返答の期限、振動の例外 |
-| kan/nyoro-rin | #14 | 写し元のコミットを AGENTS.md に書く |
-| kan/nyoro-rin | #15 | Worker のテストを `@cloudflare/vitest-plugin` に移す |
+| kan/tako-sen | #35 | kan/game の写しを、依存のパッケージ `kan-game` に切り替える |
+| kan/nyoro-rin | #17 | kan/game の写しを、依存のパッケージ `kan-game` に切り替える |
+| kan/vegtab | #129 | kan/game の写しを、依存のパッケージ `kan-game` に切り替える |
+| kan/game | #5 | Worker と画面の部品を共通のライブラリに移す |
+| kan/game | #6 | この repo を tagpr に対応させ、パッケージ `kan-game` の版を自動で出す |
