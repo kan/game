@@ -1,6 +1,6 @@
 import { env, exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
-import { normalizeName as realNormalizeName } from "../src/names";
+import { normalizeName as realNormalizeName } from "../src/name-rules";
 import type { IdRpc } from "../src/rpc";
 import {
   ID_TOKEN_LIFETIME_SECONDS,
@@ -19,8 +19,8 @@ import {
 import { issue } from "./helpers";
 
 /*
- * kan/game testing/ holds files games copy for their tests. These tests keep
- * them true to the real platform.
+ * kan/game testing/ holds files games import for their tests. These tests
+ * keep them true to the real platform.
  */
 
 /** What a contract case can do to a platform, real or fake. */
@@ -207,61 +207,8 @@ describe("testing/fake-id-platform.ts against the real RPC", () => {
     ).toBe("ok");
   });
 
-  it("applies the same name rules as src/names.ts", () => {
-    const inputs = [
-      "たこ",
-      " たこ ",
-      "Tako_Sen-01",
-      "タコ 🐙",
-      "👨‍👩‍👧‍👦🇯🇵",
-      "か\u{3099}き",
-      "た\u{FE0E}こ",
-      "♥\u{FE0F}♥\u{FE0F}",
-      "1\u{FE0F}\u{20E3}2\u{FE0F}\u{20E3}",
-      "©®",
-      "た",
-      "a".repeat(20),
-      "a".repeat(21),
-      "あ".repeat(100_000),
-      "たこ!",
-      "<b>たこ</b>",
-      "   ",
-      "\t たこ \n",
-      "e\u{301}e\u{301}",
-      "Ⅻ号",
-      "ＡＢＣ",
-    ];
-    for (const input of inputs) {
-      expect(fakeNormalizeName(input), JSON.stringify(input)).toBe(
-        realNormalizeName(input),
-      );
-    }
-    expect(fakeNormalizeName(42)).toBe(realNormalizeName(42));
-  });
-
-  it("agrees with src/names.ts on random strings", () => {
-    // Letters, digits, marks, spaces, symbols, emoji parts and selectors, so
-    // a change to either copy's rules shows up without listing its input.
-    const pool = Array.from(
-      "aZ09あア漢 _-.!@#<>/\\'\"\t\n♥©®™‼🐙👍🏽🇯🇵" +
-        "\u{3099}\u{301}\u{FE0E}\u{FE0F}\u{200D}\u{20E3}\u{3000}ＡＢ１",
-    );
-    // Park-Miller: the product stays below 2^53, so it is exact in a double.
-    let seed = 20261018;
-    const random = () => {
-      seed = (seed * 48271) % 2147483647;
-      return seed / 2147483647;
-    };
-    for (let i = 0; i < 2000; i++) {
-      const length = 1 + Math.floor(random() * 24);
-      const input = Array.from(
-        { length },
-        () => pool[Math.floor(random() * pool.length)],
-      ).join("");
-      expect(fakeNormalizeName(input), JSON.stringify(input)).toBe(
-        realNormalizeName(input),
-      );
-    }
+  it("exports the real name rules", () => {
+    expect(fakeNormalizeName).toBe(realNormalizeName);
   });
 
   it("refuses setName for states the real platform cannot reach", () => {

@@ -1,6 +1,6 @@
 import { env, exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
-import { normalizeName } from "../src/names";
+import { nameParts, nameProblem, normalizeName } from "../src/name-rules";
 import { issue } from "./helpers";
 
 /** The Worker as a game's `ID` binding sees it: methods called over RPC. */
@@ -35,6 +35,28 @@ describe("name rules", () => {
     ["not a string", 42],
   ])("refuses %s", (_, input) => {
     expect(normalizeName(input)).toBeNull();
+  });
+
+  it.each([
+    ["たこ", null],
+    ["  たこ  ", null],
+    ["た", "length"],
+    ["a".repeat(21), "length"],
+    ["   ", "length"],
+    ["あ".repeat(100_000), "length"],
+    ["たこ!", "chars"],
+    ["た\u{FE0E}こ", "chars"],
+  ])("tells why %j breaks the rules: %j", (input, expected) => {
+    expect(nameProblem(input)).toBe(expected);
+  });
+
+  it("splits a name into graphemes and marks the emoji", () => {
+    expect(nameParts("タコ 👨‍👩‍👧‍👦")).toEqual([
+      { text: "タ", emoji: false },
+      { text: "コ", emoji: false },
+      { text: " ", emoji: false },
+      { text: "👨‍👩‍👧‍👦", emoji: true },
+    ]);
   });
 });
 

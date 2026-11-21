@@ -1,8 +1,8 @@
 /**
  * The RPC contract between the ID platform and the games
- * (docs/ID_DESIGN.md「ゲームとの RPC」). This file imports nothing, so a game
- * can copy it to type its `ID` binding (`Service<IdRpc>`) and to implement
- * `GameService`.
+ * (docs/ID_DESIGN.md「ゲームとの RPC」). Games import this file from the
+ * `kan-game` package (`kan-game/rpc`) to type their `ID` binding
+ * (`Service<IdRpc>`) and to implement `GameService`, so it imports nothing.
  */
 
 export type RegisterNameResult =

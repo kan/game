@@ -52,11 +52,11 @@ kan-game（ID 基盤）── binding GAME_<名前> ─> ゲームの Worker の
 src/
   core/       盤面、ルール、Solver、Generator、難易度、成績、保存、送信キュー（pure TypeScript）
   ui/         入力、画面のコンポーネント、盤面生成の Web Worker、ID とオンラインの処理
-  worker/     API、GameService、kan/game からの写し
+  worker/     API、GameService
   App.vue
 migrations/   D1 のマイグレーション
 scripts/      dev.mjs、ライセンス一覧の生成、集計 CLI など
-tests/        テスト。kan/game の写しは tests/kan-game/
+tests/        テスト
 docs/         DESIGN.md、DATA_CONTRACT.md、DEPLOY.md
 AGENTS.md     エージェント向けの規則（仕様は書かず、docs/ を正とする）
 ```
@@ -67,21 +67,39 @@ AGENTS.md     エージェント向けの規則（仕様は書かず、docs/ を
 
 ## ID 基盤との接続
 
-### 写すファイル
+### 依存として入れる（パッケージ `kan-game`）
 
-kan/game の次のファイルを、書き換えずに写す。
+ID の契約は、kan/game がパッケージ `kan-game` として配る。ゲームは tag を指して依存に書く（kan/game#3 で 2026-11-21 に決めた）。
 
-| 写し元（kan/game） | 写し先（NYORO-RIN、TAKO-SEN） | 写し先（vegtab） | 用途 |
-|---|---|---|---|
-| `src/token.ts` | `src/worker/id-token.ts` | `src/worker/lib/id-token.ts` | Cookie の検証 |
-| `src/rpc.ts` | `src/worker/id-rpc.ts` | `src/worker/lib/id-rpc.ts` | `ID` binding の型と `GameService` の契約 |
-| `testing/fake-id-platform.ts` | `tests/kan-game/` | `tests/worker/kan-game/` | テスト用の `IdRpc` の偽物 |
-| `testing/test-id-cookie.ts` | `tests/kan-game/` | `tests/worker/kan-game/` | テスト用の鍵と Cookie |
-| `test-vectors/id-token.json` | `tests/id-token-vectors.json` | `tests/worker/kan-game/id-token-vectors.json` | 写した `id-token.ts` の照合 |
+```sh
+npm install "kan-game@github:kan/game#semver:^1.0.0"
+```
 
-- 写したら、kan/game の `test/vectors.test.ts` と同じ照合をゲームのテストに入れる
-- AGENTS.md に、写しのファイルの一覧と写し元のコミットを書く。kan/game が変わったとき、`git log <コミット>.. -- src/token.ts src/rpc.ts testing test-vectors` で写し直しが要るかを確かめられる。今の写しはどのゲームも kan/game の `258c299` と一致する
-- kan/game のマイグレーションを写してテストに使う場合（TAKO-SEN の `tests/kan-game/0001_initial.sql`）も、写しの一覧に入れる
+| import する名前 | kan/game のファイル | 用途 |
+|---|---|---|
+| `kan-game/token` | `src/token.ts` | Cookie の検証 |
+| `kan-game/rpc` | `src/rpc.ts` | `ID` binding の型と `GameService` の契約 |
+| `kan-game/name-rules` | `src/name-rules.ts` | 名前の規則（「名前」の節） |
+| `kan-game/testing/fake-id-platform` | `testing/fake-id-platform.ts` | テスト用の `IdRpc` の偽物 |
+| `kan-game/testing/test-id-cookie` | `testing/test-id-cookie.ts` | テスト用の鍵と Cookie |
+| `kan-game/test-vectors/id-token.json` | `test-vectors/id-token.json` | `token.ts` の検証の結果を固定するテストベクター |
+
+- TypeScript のソースのまま配る。Vite、vue-tsc、Vitest、wrangler（esbuild）は `node_modules` の `.ts` をそのまま読む。ゲームの tsconfig は `moduleResolution: "Bundler"` にし、`lib` を `ES2022` 以上にする（`name-rules.ts` が `Intl.Segmenter` を使う）。node は `node_modules` の `.ts` の型を除去しないので、`scripts/*.ts` から node で直接 import しない
+- パッケージのコードは kan/game のテストが確かめるので、ゲームのテストでテストベクターによる検証を繰り返さなくてよい
+- ゲームのライセンス一覧（`scripts/licenses-plugin.ts`）は、`kan-game` を第三者の OSS として数えない。kan/game には LICENSE のファイルが無く、そのままでは `UNKNOWN` として載る。`packageDirOf` で自前のコードとして扱う
+- 版は semver で、メジャーを上げるのは互換が無くなるときだけ。kan/game が新しい版を出したら、ゲームは `npm install "kan-game@github:kan/game#semver:^<版>"` で上げる。git の tag の依存に Dependabot が更新の PR を出すかは、最初のゲームで切り替えたあとに確かめる。出せなければ npm に公開するかを決め直す
+- kan/game のマイグレーションをテストに使う場合（TAKO-SEN の `tests/kan-game/0001_initial.sql`）は、今のところ写して持つ。写し元のコミットを AGENTS.md に書く
+
+切り替える前の写しの置き場所は次のとおり。どのゲームの写しも kan/game の `258c299` と一致する。切り替えたら写しを消し、この表からそのゲームを外す。
+
+| kan/game | NYORO-RIN、TAKO-SEN | vegtab |
+|---|---|---|
+| `src/token.ts` | `src/worker/id-token.ts` | `src/worker/lib/id-token.ts` |
+| `src/rpc.ts` | `src/worker/id-rpc.ts` | `src/worker/lib/id-rpc.ts` |
+| `testing/fake-id-platform.ts` | `tests/kan-game/` | `tests/worker/kan-game/` |
+| `testing/test-id-cookie.ts` | `tests/kan-game/` | `tests/worker/kan-game/` |
+| `test-vectors/id-token.json` | `tests/id-token-vectors.json` | `tests/worker/kan-game/id-token-vectors.json` |
+| `src/name-rules.ts`（`src/names.ts` の規則） | `src/core/account-profile.ts` に手で写した規則 | 持たない（長さだけを確かめ、規則は `registerName` の `invalid` に任せる） |
 
 ### wrangler.jsonc
 
@@ -117,7 +135,7 @@ kan/game の次のファイルを、書き換えずに写す。
 - 名前は `POST /api/id/session` の応答で受け取る。`getName` は使わなくてよい
 - 名前の登録は、ゲームの API が `registerName` の RPC を呼び、結果をゲームの D1（TAKO-SEN `leaderboard_profiles`、NYORO-RIN `profiles`）にも写す
 - 結果（`ok` / `already_named` / `name_taken` / `invalid` / `no_id`）は `switch` で分け、`default` で `never` に代入して網羅を型で検査する。kan/game が結果を足したときに気付ける
-- 画面で名前を前もって確かめる規則（`src/core/account-profile.ts`）は、kan/game の `src/names.ts` と同じ規則を手で写している。kan/game の規則を変えたら、各ゲームの規則も直す
+- 画面とゲームの Worker で名前を前もって確かめるときは、`kan-game/name-rules` の `nameProblem`（`length` / `chars`）と `normalizeName` を使う。絵文字を描き分けるときは `nameParts` を使う。TAKO-SEN と NYORO-RIN は、切り替えるまで同じ規則を `src/core/account-profile.ts` に手で写している
 
 ### 退会（`GameService.deleteAccount`）
 
@@ -243,7 +261,7 @@ dev は検索エンジンに載せない。NYORO-RIN と vegtab がこの形で�
   - kan/game、vegtab、Pu-Jan はこの方式になっている。TAKO-SEN と NYORO-RIN は `wrangler` の `getPlatformProxy` で D1 だけを用意して Node で動かしていて、この方式へ移す（kan/tako-sen#32、kan/nyoro-rin#15）
   - API を呼ぶ補助（`call`、`post`、env の差し替え）は 1 つのファイルにまとめる（kan/game の `test/helpers.ts`、NYORO-RIN の `tests/worker-env.ts`）
   - 注意は kan/game の AGENTS.md の「テスト」と「開発上の知見」にある（旧名の `@cloudflare/vitest-pool-workers` を入れない、Rate Limiting の数はテストファイルをまたいで共有される、など）
-- ID: 写した `testing/` の偽物と Cookie で、本物と同じ経路を通す。認証を差し替えるモックだけで済ませない
+- ID: `kan-game/testing/*` の偽物と Cookie で、本物と同じ経路を通す。認証を差し替えるモックだけで済ませない
 - テスト用の `wrangler.jsonc` の `database_id` は、本物の ID でなくダミー（`00000000-...`）にする
 - 退会: `ACCOUNT_TABLES` の網羅、退会済みの ID の書き込みを断ること、何度呼んでも同じ結果になること
 
@@ -265,7 +283,7 @@ dev は検索エンジンに載せない。NYORO-RIN と vegtab がこの形で�
 
 ## 新しいゲームを足す手順
 
-1. ゲームの repo を NYORO-RIN の構成で作り、kan/game の写しを置く。写し元のコミットを AGENTS.md に書く
+1. ゲームの repo を NYORO-RIN の構成で作り、`kan-game` を依存に入れる（「依存として入れる」の節）
 2. `wrangler.jsonc` に、ローカル、dev、本番の 3 つの環境を書く（上の表）。`GameService` を `src/worker/main.ts` から export する
 3. D1（`<game>-dev`、`<game>-prod`）を作り、dev の Worker を出す
 4. kan/game の `wrangler.jsonc` の `env.dev` に、`GAME_<名前>` の service binding（`entrypoint: "GameService"`）、`GAMES` への列挙、`ALLOWED_ORIGINS` へのオリジンを足して出す。**ゲームの Worker を先に出す。** binding の先が無いと、退会が毎回 `503 deletion_incomplete` になる
@@ -276,6 +294,22 @@ dev は検索エンジンに載せない。NYORO-RIN と vegtab がこの形で�
 9. 鍵の入れ替えの手順（ID_DESIGN.md「鍵の管理」）の対象に、そのゲームの `ID_PUBLIC_KEYS` が入ったことを確かめる
 
 kan/game の設定を変える作業は、ゲームの repo の作業とは分けて、利用者に確かめてから行う。本番へのデプロイ、リモートの D1 への書き込み、secret の登録も同じ。
+
+## ゲームの間で共通にする部品
+
+ゲームの間でほぼ同じコードは、写しを広げる代わりに、共通のライブラリとして整える（kan/game#3、2026-11-16 と 2026-11-21 に決めた）。片方で直してもう片方へ issue で戻す運用では、戻すたびに移す先でレビューを受け、写しの中身がさらに分かれるため。写しの版の記録と、写し元とのずれの検出は、依存の版で表されるので要らなくなる。
+
+| 層 | 例 | 扱い |
+|---|---|---|
+| ID の契約 | `token.ts`、`rpc.ts`、`testing/`、名前の規則 | 入れた（パッケージ `kan-game` の 1.0.0）。kan/game 自身も同じファイルを使う |
+| Worker の部品 | Cookie の検証と `deleted_accounts`、`json()` / `readJsonBody`、回数の制限の枠、`deleteAccount` の骨格、`ACCOUNT_TABLES` の網羅テストの補助 | 入れる。素の `fetch` とルートの表から使う形だけを作る（Hono から使う形は作らない） |
+| 画面と build の部品 | `install.ts`、`stale-chunk.ts`、`browser-storage`、`Outbox<T>`、`licenses-plugin`、`check-sw-licenses` | ロジックは入れる。Vue のコンポーネント（`InstallSteps.vue` など）は、ゲームごとの文面を slot や props で受けられるものだけを入れる。Pinia や vue-i18n などには依存させない |
+
+パズルのコアと、ゲームごとの画面は入れない。Pu-Jan から使えることは条件にしない（「ゲームの一覧」）。
+
+- Worker と画面の部品は、ゲームの間のずれ（次の節）を直してから移す。ずれたまま移すと、どちらの実装を正にするかを、移す作業の途中で決めることになる
+- ID 基盤と関係のない部品の置き場所（kan/game の中か、別の repo か）は、移すときに決める。npm の git の依存は repo の中のサブディレクトリを指せないので、kan/game の中に置くなら、今の `kan-game` に入れるか、npm に公開する
+- build せず、TypeScript のソースのまま配る。install の script（`prepare` など）で build させない
 
 ## ゲームの間で残っているずれ
 

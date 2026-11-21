@@ -3,7 +3,7 @@
 kan-game.app のポータルと、各ゲームが共通に使う匿名 ID の基盤（ID 基盤）を 1 つの Cloudflare Worker で提供するリポジトリ。
 利用するゲームは TAKO-SEN（`~/tako-sen`）、Vege-Table（`~/vegtab`）、NYORO-RIN（`~/nyoro-rin`）、Pu-Jan（`~/pujan`、dev だけ）。
 
-**ゲームの側の構成と実装の注意は [`docs/GAME_GUIDE.md`](docs/GAME_GUIDE.md) にまとめてある。** 新しいゲームを足すとき、ゲームとの契約（写し、RPC、退会）を変えるときは読む。ゲームの作りが変わったら、`GAME_GUIDE.md` も直す。
+**ゲームの側の構成と実装の注意は [`docs/GAME_GUIDE.md`](docs/GAME_GUIDE.md) にまとめてある。** 新しいゲームを足すとき、ゲームとの契約（ゲームへ配るパッケージ、RPC、退会）を変えるときは読む。ゲームの作りが変わったら、`GAME_GUIDE.md` も直す。
 
 ## 仕様の参照先
 
@@ -40,7 +40,8 @@ action の `uses:` は完全な版のタグ（`@v7.0.1`）で書き、実際に�
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/index.ts`                      | Worker の本体。default export の `WorkerEntrypoint`（HTTP、定期実行、ゲーム向けの RPC `getName` / `registerName`）。**entrypoint 以外を export しない**（workerd が名前付き export を entrypoint の候補として扱うため）                                                                           |
 | `src/router.ts`                     | ルーターの `handleFetch` と `ID_ROUTES`。`POST` 以外と許可外の `Origin` を断り、Cookie を検証して handler に渡す                                                                                                                                                                                  |
-| `src/names.ts`                      | 名前の規則（TAKO-SEN の規則を写したもの）と、名前の取得と登録                                                                                                                                                                                                                                     |
+| `src/names.ts`                      | 名前の取得と登録                                                                                                                                                                                                                                                                                  |
+| `src/name-rules.ts`                 | 名前の規則（TAKO-SEN の規則を写したもの）。ゲームへ配る。何も import しない                                                                                                                                                                                                                       |
 | `src/account.ts`                    | 退会。`GAMES` に列挙した binding の `deleteAccount` を順に呼んでから ID を消す。`deleting` のまま残った ID を定期実行でやり直す `retryDeletions`                                                                                                                                                  |
 | `src/rpc.ts`                        | ゲームとの RPC の契約の型（`IdRpc` / `RegisterNameResult` / `GameService`）。何も import しない                                                                                                                                                                                                   |
 | `src/http.ts`                       | JSON の応答（`Cache-Control: no-store` 付き）、エラーの応答、`Origin` の確認、Cookie の組み立て、クライアントの IP                                                                                                                                                                                |
@@ -58,26 +59,26 @@ action の `uses:` は完全な版のタグ（`@v7.0.1`）で書き、実際に�
 | `public/`                           | ポータルの画面（Workers Static Assets）。トップ（`index.html`）、アカウント画面（`account.html`）、利用規約とプライバシーポリシー、404、`_headers`（CSP など）                                                                                                                                    |
 | `public/favicon.svg` ほか           | アイコン（デフォルメしたゲームコントローラ）。`favicon.svg` が元で、`favicon-32.png` と `apple-touch-icon.png`（180px）はそこから描き出したもの。ヘッダーのロゴにも `favicon.svg` を使う。描き直したら PNG も作り直す                                                                             |
 | `public/assets/games/`              | トップのゲームの一覧に出す各ゲームのアイコン。`tako-sen.svg` は TAKO-SEN の `public/tako.svg`（55bc12e）の写しで、TAKO-SEN がアイコンを変えたら写し直す。ゲームの一覧には、本番の `kan-game.app` に出したゲームだけを載せる（dev だけの Pu-Jan は載せない）                                       |
-| `public/assets/lib.js`              | 画面の処理のうち DOM に触れない部分（API の呼び出し、エラーの文言、コードの区切り、入力したコードの種類の判定）。`test/portal-lib.test.ts` で試す。今はポータル専用で、ゲームへ写す前提のファイル（`src/token.ts` など）とは扱いが違う                                                            |
+| `public/assets/lib.js`              | 画面の処理のうち DOM に触れない部分（API の呼び出し、エラーの文言、コードの区切り、入力したコードの種類の判定）。`test/portal-lib.test.ts` で試す。今はポータル専用で、ゲームへ配るファイル（`src/token.ts` など）とは扱いが違う                                                                  |
 | `public/assets/account.js`          | アカウント画面の動作（引き継ぎコード、復旧コード、コードの入力、退会）                                                                                                                                                                                                                            |
 | `scripts/generate-signing-key.mjs`  | 鍵の生成                                                                                                                                                                                                                                                                                          |
 | `scripts/generate-test-vectors.mjs` | `test-vectors/id-token.json` の生成（`npm run generate-vectors`）。いつ実行するかは「実装の規約」を参照                                                                                                                                                                                           |
-| `test-vectors/id-token.json`        | ゲームが写した `src/token.ts` を照合するテストベクター。照合の仕方は `test/vectors.test.ts`                                                                                                                                                                                                       |
-| `testing/`                          | ゲームがテスト用に写すファイル。`fake-id-platform.ts`（`IdRpc` の偽物）と `test-id-cookie.ts`（テスト用の鍵と Cookie）。本物との一致は `test/testing-kit.test.ts` で確かめる                                                                                                                      |
+| `test-vectors/id-token.json`        | `src/token.ts` の検証の結果を固定するテストベクター。照合の仕方は `test/vectors.test.ts`。ゲームへ配る                                                                                                                                                                                            |
+| `testing/`                          | ゲームがテストに使うファイル。`fake-id-platform.ts`（`IdRpc` の偽物）と `test-id-cookie.ts`（テスト用の鍵と Cookie）。本物との一致は `test/testing-kit.test.ts` で確かめる。ゲームへ配る                                                                                                          |
 | `test/`                             | テストと、テスト用の型（`env.d.ts`）、マイグレーションの適用（`apply-migrations.ts`）                                                                                                                                                                                                             |
 | `wrangler.jsonc`                    | 先頭がローカル用、`env.dev` が `dev.kan-game.app` 用                                                                                                                                                                                                                                              |
 | `worker-configuration.d.ts`         | `wrangler types` の生成物。手で編集しない                                                                                                                                                                                                                                                         |
 
 ## 実装の規約
 
-- **`src/token.ts` は Web Crypto 以外に依存させない。** 各ゲームがこのファイルを写して Cookie の検証に使うため（設計書「鍵の管理」）。`src/` の他のファイルや npm のパッケージを import しない
-  - テストベクターを作り直すのは、`src/token.ts` の検証の結果が変わる変更をしたときと、ベクターのケースを足すときだけにする。`npm run generate-vectors` で作り直したら、`src/token.ts` とテストベクターの両方を各ゲームの写しに配る
+- ゲームへ配るファイルの規則は「ゲームへ配るパッケージ」の節にある
+- **`src/token.ts` は Web Crypto 以外に依存させない。** 各ゲームが Cookie の検証に使うため（設計書「鍵の管理」）。`src/` の他のファイルや npm のパッケージを import しない
+  - テストベクターを作り直すのは、`src/token.ts` の検証の結果が変わる変更をしたときと、ベクターのケースを足すときだけにする
   - 秘密鍵は生成時だけ使って捨てるので、ケースを 1 つ足すだけでも全トークンと公開鍵が入れ替わる。それ以外の理由（整形や、ただの再実行）では作り直さない
-- **`src/rpc.ts` は何も import しない。** 各ゲームが写して、`ID` binding の型付けと `GameService` の実装に使うため。RPC のメソッドを変えたら、このファイルとゲーム側の写しを合わせて直す
-- **`testing/` のファイルは何も import しない。** 写した先で `token.ts` や `rpc.ts` の置き場所がゲームごとに違うため。型は構造で `IdRpc` に合わせ、`test/testing-kit.test.ts` で `IdRpc` に代入できることを確かめる
-  - 名前の規則や RPC の結果（`src/names.ts`）を変えたら、`testing/fake-id-platform.ts` の偽物と名前の規則も合わせて直し、契約テストのケースを足す。契約テストは同じケースを本物と偽物に流して結果を比べるので、片方だけ直すと落ちる
+- **`src/rpc.ts` と `src/name-rules.ts` は何も import しない。** 各ゲームが `ID` binding の型付けと `GameService` の実装に、画面とゲームの Worker が名前の確認に使うため
+- `testing/` のファイルは、パッケージに入るファイル（`src/rpc.ts`、`src/name-rules.ts` など）だけを相対パスで import してよい
+  - 名前の規則や RPC の結果（`src/name-rules.ts`、`src/names.ts`）を変えたら、`testing/fake-id-platform.ts` の偽物も合わせて直し、契約テストのケースを足す。契約テストは同じケースを本物と偽物に流して結果を比べるので、片方だけ直すと落ちる
   - トークンの形式（`src/token.ts` の `signIdToken`）を変えたら、`testing/test-id-cookie.ts` も合わせる
-  - 直したら、写しを各ゲームへ配る
 - ゲームを足すときは、`GAME_<名前>` の service binding と、環境変数 `GAMES` への列挙を、環境ごと（`env.dev` と `env.production`）に両方書く。ローカル（先頭）の `GAMES` は空にしてあり、ローカルで退会の連携を確かめるときだけ足す。`GAMES` に列挙した binding が無いと退会は失敗する。足す順序とポータル、プライバシーポリシーの更新は `docs/GAME_GUIDE.md`「新しいゲームを足す手順」にある
 - `/api/id/*` の API は `src/router.ts` の `ID_ROUTES` に足す。`POST` の限定、`Origin` の確認、鍵の読み込み、Cookie の検証はルーターが行うので、handler で繰り返さない
   - 要 ID の API は `requireId(handler)` で包んで登録する。`401 no_id` と `410 id_deleted` は `requireId` が返し、handler は ID の行（`context.account`）を受け取る。退会の途中の ID を断る API は `requireActiveId` で包む（`409 id_deleting` も返す）
@@ -105,6 +106,25 @@ action の `uses:` は完全な版のタグ（`@v7.0.1`）で書き、実際に�
 - 頻度の制限は IP（`CF-Connecting-IP`）単位。発行の制限は新しい ID を作るときだけ数え、延長では数えない
   - ヘッダーが無いリクエストは、すべて `unknown` という 1 つのキーで数える。ゲームの Worker が `/api/id/*` を中継するとき、元のリクエストのヘッダーを落とすと全ゲームの新規の利用者が 1 つの枠を共有し、すぐ `429` になる。中継は元のリクエストをそのまま渡す前提で、TAKO-SEN 側の中継を実装するときに確かめる
 
+## ゲームへ配るパッケージ
+
+この repo のルートの `package.json` は、ゲームへ ID の契約を配るパッケージ `kan-game` を兼ねる（kan/game#3）。ゲームは `"kan-game": "github:kan/game#semver:^1.0.0"` の形で依存に書き、`kan-game/token` のように import する。npm の git の依存は repo の中のサブディレクトリを指せないので、パッケージをルートに置いている。ゲーム側の使い方は `docs/GAME_GUIDE.md`「ID 基盤との接続」にある。
+
+| 公開する名前                   | ファイル                     |
+| ------------------------------ | ---------------------------- |
+| `kan-game/token`               | `src/token.ts`               |
+| `kan-game/rpc`                 | `src/rpc.ts`                 |
+| `kan-game/name-rules`          | `src/name-rules.ts`          |
+| `kan-game/testing/*`           | `testing/` の 2 つ           |
+| `kan-game/test-vectors/*.json` | `test-vectors/id-token.json` |
+
+- 公開するファイルは `package.json` の `exports` と `files` の両方に書く。`files` に無いファイルは、ゲームの `node_modules` に入らない。`exports` の行が `files` に入っていることは `test/package.test.ts` が確かめる。足したら `npm pack --dry-run` で入るファイルも確かめる
+- **配るファイルから、パッケージに入らないファイル（`src/` の他のファイル）や npm のパッケージを import しない。** ゲームの側で import を解決できず、build とテストが失敗する
+- build せず、TypeScript のソースのまま配る。**`prepare` などの install の script を足さない。** git の依存に `prepare` があると、npm はゲームの install のたびに kan/game の devDependencies を入れて script を走らせる。npm 11 は install script を承認制にしているので、止められるおそれもある
+- **版は `package.json` の `version` と tag `v<version>` で表す。** 配るファイルを変えたら、版を上げるかを利用者に確かめる。**版を上げること、tag を打つこと、tag の push は、利用者の承認を得てから行う。** 上げるときは `version` を変えてコミットし、そのコミットに tag を打って push する。`production` と `production-*` の tag はデプロイの印で、パッケージの版とは関係ない
+  - 版の上げ方は semver に従う。ゲームが import している名前を消す、型を狭める、検証の結果を変えるときはメジャーを上げる
+  - ゲームは版ごとに順に上げるので、古い版を使うゲームが残っている間も、ID の契約（Cookie の形式、RPC のメソッドと結果）は互換を保つ。互換の無い変更は、全ゲームの上げる順番を決めてから入れる
+
 ## テスト
 
 - `vitest.config.ts` が実行のたびに鍵ペアを 3 つ生成し、binding として渡す。現在の署名鍵、ローテーションで退いた鍵（公開鍵だけ `ID_PUBLIC_KEYS` に残る）、未知の鍵。**秘密鍵をリポジトリに置かない**
@@ -131,11 +151,12 @@ action の `uses:` は完全な版のタグ（`@v7.0.1`）で書き、実際に�
 - npm 11 は install script を承認制にしており、`npm install` で workerd と esbuild の postinstall が止められる。プラットフォーム別のバイナリは optional dependency として入るので、テストと `wrangler dev` は動く
 - エディタの TypeScript の診断が `tsconfig.json` の `types` を読み直さず、`Env` や `cloudflare:workers` が見つからないと出し続けることがある。`npm run typecheck` の結果を正とする
   - TypeScript 7 の標準ライブラリの型は `node_modules/@typescript/typescript-<OS>-<CPU>/lib/` にある。エディタがこれを読めず、`Promise` や `Response` が見つからないと出すことがある。これも `npm run typecheck` の結果を正とする
-- Workers の `Uint8Array.fromBase64` / `toBase64` は実行時に使えるが、TypeScript 7 では型が lib の `esnext` にしかなく、`tsconfig.json` の `lib` は `ES2022`。`src/token.ts` はゲームが写すので、lib を変えたり型宣言を足したりせず、`btoa` / `atob` で base64url を扱っている
+- Workers の `Uint8Array.fromBase64` / `toBase64` は実行時に使えるが、TypeScript 7 では型が lib の `esnext` にしかなく、`tsconfig.json` の `lib` は `ES2022`。`src/token.ts` はゲームの tsconfig でも型検査されるので、lib を変えたり型宣言を足したりせず、`btoa` / `atob` で base64url を扱っている
 - curl は `http://localhost` でも `Secure` の Cookie を送るので、ローカルの確認に使える
 - Chromium は `http://localhost` でも `__Secure-` の Cookie を保存する（2026-10-18 に Playwright で確認、期限は 400 日のまま）。Firefox と Safari は未確認
 - Playwright の MCP でブラウザを操作するとき、`page.once("dialog")` で確認ダイアログを処理すると、ツール側がダイアログを横取りして止まることがある。`browser.newContext()` で作ったページに `page.on("dialog", ...)` を付けると処理できる。新しいコンテキストは、別の端末に見立てるのにも使える
 - Playwright の MCP は、スクリーンショットなどを repo の `.playwright-mcp/` にしか書けない（git の対象外にしてある）
+- パッケージ `kan-game` は、2026-11-21 に NYORO-RIN（`e6e3cc8`）の手元で確かめた。`npm pack` した tarball を入れ、写しをパッケージからの再 export に差し替えると、`vue-tsc`、`vite build`、`wrangler deploy --dry-run`、テストが通った。ライセンス一覧のテストだけは、Worker の import するパッケージに `kan-game` が増えたことで落ちた（`docs/GAME_GUIDE.md` の「依存として入れる」）
 
 ## 進み具合
 

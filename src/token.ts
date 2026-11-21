@@ -1,10 +1,9 @@
 /**
  * ES256 JWTs carried in the kan-game.app ID cookie (docs/ID_DESIGN.md「ID と Cookie」).
  *
- * Each game copies this file to verify the cookie, so it depends on nothing but
- * Web Crypto. Copy it unchanged, and check the copy against
- * test-vectors/id-token.json the way test/vectors.test.ts does
- * (docs/ID_DESIGN.md「鍵の管理」).
+ * Games import this file from the `kan-game` package (`kan-game/token`) to
+ * verify the cookie, so it depends on nothing but Web Crypto. test/vectors.test.ts
+ * checks it against test-vectors/id-token.json (docs/ID_DESIGN.md「鍵の管理」).
  */
 
 /** 400 days: the longest cookie lifetime browsers accept. */

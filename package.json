@@ -1,8 +1,24 @@
 {
   "name": "kan-game",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
+  "exports": {
+    "./token": "./src/token.ts",
+    "./rpc": "./src/rpc.ts",
+    "./name-rules": "./src/name-rules.ts",
+    "./testing/fake-id-platform": "./testing/fake-id-platform.ts",
+    "./testing/test-id-cookie": "./testing/test-id-cookie.ts",
+    "./test-vectors/id-token.json": "./test-vectors/id-token.json",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/token.ts",
+    "src/rpc.ts",
+    "src/name-rules.ts",
+    "testing/",
+    "test-vectors/"
+  ],
   "scripts": {
     "dev": "wrangler dev",
     "deploy:dev": "wrangler deploy --env dev",

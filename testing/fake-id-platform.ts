@@ -7,19 +7,17 @@
  * rules is `invalid`. getName still returns the name of an ID being deleted,
  * as the real platform does, and null for an unknown or deleted ID.
  *
- * Copy this file unchanged from kan/game testing/. It imports nothing; the
- * returned `rpc` fits `IdRpc` structurally. kan/game test/testing-kit.test.ts
+ * Games import it from the `kan-game` package
+ * (`kan-game/testing/fake-id-platform`). kan/game test/testing-kit.test.ts
  * runs the same cases against this fake and the real platform.
  *
  * `normalizeName` is exported too: the name rules, for tests that need them.
  */
 
-type RegisterNameResult =
-  | { result: "ok"; name: string }
-  | { result: "already_named"; name: string }
-  | { result: "name_taken" }
-  | { result: "invalid" }
-  | { result: "no_id" };
+import { normalizeName } from "../src/name-rules";
+import type { IdRpc } from "../src/rpc";
+
+export { normalizeName } from "../src/name-rules";
 
 export interface FakeIdPlatformOptions {
   /**
@@ -31,10 +29,7 @@ export interface FakeIdPlatformOptions {
 
 export interface FakeIdPlatform {
   /** Pass this where a game expects its `ID` binding (`Service<IdRpc>`). */
-  rpc: {
-    getName(id: string): Promise<string | null>;
-    registerName(id: string, name: string): Promise<RegisterNameResult>;
-  };
+  rpc: IdRpc;
   /**
    * Makes an ID exist and active (only matters when `ids` was given, or after
    * deleteId). A deleted ID comes back without a name.
@@ -124,35 +119,4 @@ export function createFakeIdPlatform(
       deleted.add(id);
     },
   };
-}
-
-// The name rules, the same as kan/game src/names.ts (and TAKO-SEN's
-// src/core/account-profile.ts). kan/game's tests compare the two.
-
-const NAME_MIN = 2;
-const NAME_MAX = 20;
-const NAME_MAX_UNITS = 256;
-const segmenter = new Intl.Segmenter("ja", { granularity: "grapheme" });
-const emojiPattern =
-  /^(?:\p{Regional_Indicator}{2}|[0-9#*]\u{FE0F}?\u{20E3}|\p{Extended_Pictographic}\u{FE0F}?\p{Emoji_Modifier}?(?:\u{200D}\p{Extended_Pictographic}\u{FE0F}?\p{Emoji_Modifier}?)*)$/u;
-
-/** The name in canonical form (NFC, trimmed), or null when it breaks the rules. */
-export function normalizeName(value: unknown): string | null {
-  if (typeof value !== "string" || value.length > NAME_MAX_UNITS * 4)
-    return null;
-  const name = value.normalize("NFC").trim();
-  const parts = Array.from(segmenter.segment(name), ({ segment }) => segment);
-  if (
-    name.length > NAME_MAX_UNITS ||
-    parts.length < NAME_MIN ||
-    parts.length > NAME_MAX
-  )
-    return null;
-  const allowed = parts.every(
-    (part) =>
-      emojiPattern.test(part) ||
-      (/^[\p{L}\p{N}\p{M} _-]+$/u.test(part) &&
-        !/[\u{FE0E}\u{FE0F}]/u.test(part)),
-  );
-  return allowed ? name : null;
 }

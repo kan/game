@@ -5,39 +5,46 @@ kan-game.app のポータルと ID 基盤の Worker。
 
 ## 構成
 
-| パス                               | 内容                                                                         |
-| ---------------------------------- | ---------------------------------------------------------------------------- |
-| `src/index.ts`                     | Worker の本体（HTTP、定期実行、ゲーム向けの RPC）                            |
-| `src/router.ts`                    | `/api/id/*` のルーター                                                       |
-| `src/names.ts`                     | 名前の規則と、名前の取得と登録（RPC）                                        |
-| `src/account.ts`                   | 退会（止まった退会の定期実行でのやり直しを含む）                             |
-| `src/rpc.ts`                       | ゲームとの RPC の契約の型。各ゲームはこのファイルを写して使う                |
-| `src/session.ts`                   | `POST /api/id/session`（ID の発行と延長）                                    |
-| `src/transfer.ts`                  | 引き継ぎコードの発行と入力                                                   |
-| `src/recovery.ts`                  | 復旧コードの発行と入力（ポータル限定）                                       |
-| `src/migration.ts`                 | 引き継ぎ用トークンの入力                                                     |
-| `src/redeem.ts`                    | 入力の API に共通の流れ                                                      |
-| `src/maintenance.ts`               | 期限切れの行を消す定期実行                                                   |
-| `src/id.ts`                        | Cookie からの ID の読み取りと、Cookie を設定する応答の組み立て               |
-| `src/token.ts`                     | Cookie の JWT（ES256）の署名と検証。各ゲームはこのファイルを写して検証に使う |
-| `migrations/`                      | D1 のスキーマ                                                                |
-| `public/`                          | ポータルの画面。トップ、アカウント画面、利用規約とプライバシーポリシー       |
-| `public/assets/`                   | 画面の JavaScript（`lib.js` / `portal.js` / `account.js`）と CSS             |
-| `scripts/generate-signing-key.mjs` | 署名鍵（P-256）の生成                                                        |
-| `test-vectors/id-token.json`       | ゲームが写した `src/token.ts` を照合するテストベクター                       |
+| パス                               | 内容                                                                   |
+| ---------------------------------- | ---------------------------------------------------------------------- |
+| `src/index.ts`                     | Worker の本体（HTTP、定期実行、ゲーム向けの RPC）                      |
+| `src/router.ts`                    | `/api/id/*` のルーター                                                 |
+| `src/names.ts`                     | 名前の取得と登録（RPC）                                                |
+| `src/name-rules.ts`                | 名前の規則。ゲームへ配る                                               |
+| `src/account.ts`                   | 退会（止まった退会の定期実行でのやり直しを含む）                       |
+| `src/rpc.ts`                       | ゲームとの RPC の契約の型。ゲームへ配る                                |
+| `src/session.ts`                   | `POST /api/id/session`（ID の発行と延長）                              |
+| `src/transfer.ts`                  | 引き継ぎコードの発行と入力                                             |
+| `src/recovery.ts`                  | 復旧コードの発行と入力（ポータル限定）                                 |
+| `src/migration.ts`                 | 引き継ぎ用トークンの入力                                               |
+| `src/redeem.ts`                    | 入力の API に共通の流れ                                                |
+| `src/maintenance.ts`               | 期限切れの行を消す定期実行                                             |
+| `src/id.ts`                        | Cookie からの ID の読み取りと、Cookie を設定する応答の組み立て         |
+| `src/token.ts`                     | Cookie の JWT（ES256）の署名と検証。ゲームへ配る                       |
+| `migrations/`                      | D1 のスキーマ                                                          |
+| `public/`                          | ポータルの画面。トップ、アカウント画面、利用規約とプライバシーポリシー |
+| `public/assets/`                   | 画面の JavaScript（`lib.js` / `portal.js` / `account.js`）と CSS       |
+| `scripts/generate-signing-key.mjs` | 署名鍵（P-256）の生成                                                  |
+| `test-vectors/id-token.json`       | `src/token.ts` の検証の結果を固定するテストベクター                    |
 
 ## ゲームから使う
 
 ゲームの構成、ID 基盤とのつなぎ方、実装の注意は [`docs/GAME_GUIDE.md`](docs/GAME_GUIDE.md) にまとめてある。
 
-各ゲームは次のファイルを書き換えずに写す（`kan/game` は private なので npm の依存にしない）。
+この repo は、ゲームへ ID の契約を配るパッケージ `kan-game` を兼ねる。ゲームは tag を指して依存に書く。
 
-- `src/token.ts`: Cookie の検証。写したら `test-vectors/id-token.json` も写し、`test/vectors.test.ts` と同じ照合をゲームのテストに入れる
-- `src/rpc.ts`: `ID` binding の型（`Service<IdRpc>`）と、ゲームが実装する `GameService`
-- `testing/fake-id-platform.ts`（テスト用）: `IdRpc` の偽物。名前の規則と結果は本物と同じで、「別の ID が名前を持っている」「別のゲームで名前を設定済み」「退会の途中」の状態を作れる
-- `testing/test-id-cookie.ts`（テスト用）: 鍵を作り、`ID_PUBLIC_KEYS` の値と、指定した ID で署名した Cookie を返す
+```sh
+npm install "kan-game@github:kan/game#semver:^1.0.0"
+```
 
-`testing/` のファイルは何も import しない。本物と食い違わないことは `test/testing-kit.test.ts` で確かめている。
+- `kan-game/token`（`src/token.ts`）: Cookie の検証
+- `kan-game/rpc`（`src/rpc.ts`）: `ID` binding の型（`Service<IdRpc>`）と、ゲームが実装する `GameService`
+- `kan-game/name-rules`（`src/name-rules.ts`）: 名前の規則。登録の前に画面とゲームの Worker で確かめるのに使う
+- `kan-game/testing/fake-id-platform`（テスト用）: `IdRpc` の偽物。名前の規則と結果は本物と同じで、「別の ID が名前を持っている」「別のゲームで名前を設定済み」「退会の途中」の状態を作れる
+- `kan-game/testing/test-id-cookie`（テスト用）: 鍵を作り、`ID_PUBLIC_KEYS` の値と、指定した ID で署名した Cookie を返す
+- `kan-game/test-vectors/id-token.json`: `src/token.ts` の検証の結果を固定するテストベクター
+
+`testing/` の偽物が本物と食い違わないことは `test/testing-kit.test.ts` で確かめている。版の出し方は AGENTS.md の「ゲームへ配るパッケージ」にある。
 
 ## ローカルの開発
 

@@ -87,19 +87,20 @@ JWT のヘッダーは `alg: ES256` と `kid`、クレームは `sub`（ID）、
 ID 基盤に古い公開鍵を残すのは、ゲームが古い鍵の Cookie を断ったあとでも、延長の API がその Cookie を受け取って新しい鍵で署名し直せるようにするためである。
 各ゲームは起動時に延長の API を呼ぶので、30 日のあいだに 1 度でも遊んだ端末は新しい鍵へ移る。
 
-署名の検証のコードは、各ゲームが写して持つ（本書で追加）。
-`kan/game` は private なので、npm の依存として配ると各ゲームの CI に読み取りの権限が要る。
-写しが食い違わないように、`kan/game` に検証用のテストベクター（正しい Cookie、期限切れ、別の `iss`、未知の `kid`）を置き、各ゲームのテストで読む。
+署名の検証のコードは、`kan/game` がパッケージ `kan-game` として配り、各ゲームは依存として入れる（本書で追加。kan/game#3 で 2026-11-21 に写しから切り替えた）。
+当初は `kan/game` が private だったので、npm の依存にすると各ゲームの CI に読み取りの権限が要るとして、各ゲームが写して持っていた。`kan/game` を公開したので、この理由はなくなった。
+パッケージは repo のルートの `package.json` で、ゲームは `github:kan/game#semver:^1.0.0` のように tag を指して依存に書く。版の出し方は AGENTS.md の「ゲームへ配るパッケージ」にある。
+検証の結果が版の間で変わらないように、`kan/game` に検証用のテストベクター（正しい Cookie、期限切れ、別の `iss`、未知の `kid`）を置く。
 
-- 写すのは `src/token.ts`（署名の検証）と `src/rpc.ts`（RPC の契約の型）で、どちらも書き換えずに写す（本書で追加）
-- ゲームのテスト用に、`testing/fake-id-platform.ts`（RPC の偽物）と `testing/test-id-cookie.ts`（テスト用の Cookie の発行）も置き、同じく書き換えずに写す。2 つとも import を持たない。`kan/game` のテストで、偽物に本物と同じケースを流して結果を比べ、発行した Cookie が本物の検証に通ることを確かめる（本書で追加）
-- テストベクターは `test-vectors/id-token.json` で、公開鍵、`iss`、検証の基準時刻 `now`、トークンと期待する結果の組、Cookie ヘッダーと期待する ID の組を持つ。設計書が挙げた 4 つに、下のケースを加えた。照合の仕方は `test/vectors.test.ts` を写す（本書で追加）
+- 配るのは `src/token.ts`（署名の検証）、`src/rpc.ts`（RPC の契約の型）、`src/name-rules.ts`（名前の規則）（本書で追加）
+- ゲームのテスト用に、`testing/fake-id-platform.ts`（RPC の偽物）と `testing/test-id-cookie.ts`（テスト用の Cookie の発行）も配る。`kan/game` のテストで、偽物に本物と同じケースを流して結果を比べ、発行した Cookie が本物の検証に通ることを確かめる（本書で追加）
+- テストベクターは `test-vectors/id-token.json` で、公開鍵、`iss`、検証の基準時刻 `now`、トークンと期待する結果の組、Cookie ヘッダーと期待する ID の組を持つ。設計書が挙げた 4 つに、下のケースを加えた。照合は `test/vectors.test.ts` で行う（本書で追加）
   - 鍵の切り替え中を想定した、2 本目の公開鍵で署名したトークン
   - `exp` の境界（ちょうど `now` と、その 1 秒後）
   - 改ざんした署名と本文、`alg` の違い、文字列でない `kid`、`iat` の無い本文、64 バイトでない署名、UUID でない `sub`、形式の誤り
   - 同名の Cookie の並び（有効なものが前と後ろ）と、名前が前方または後方だけ一致する Cookie
   - `typ` の無いトークン、整数でない `iat`、`iat` の境界（現在の 5 分後と、その 1 秒後）、`exp - iat` が 400 日を超えるトークン、多数の偽の Cookie（署名の検証まで届くものを含む）の後ろにある本物の Cookie
-- テストベクターの秘密鍵は生成時だけ使って捨てる。トークンの形式を変えるときだけ `scripts/generate-test-vectors.mjs` で作り直し、ゲームの写しも合わせて更新する（本書で追加）
+- テストベクターの秘密鍵は生成時だけ使って捨てる。トークンの形式を変えるときだけ `scripts/generate-test-vectors.mjs` で作り直す（本書で追加）
 
 ## HTTP の API
 
@@ -141,7 +142,7 @@ ID 基盤がゲームに提供するもの（`ID` binding）は次のとおり�
 - 結果は `{ result, name? }` の形で返す。`name` は `ok` と `already_named` のときだけ付く（本書で追加）
 - ID が存在しないか退会の途中なら、`registerName` は `no_id` を返す。`getName` は退会済みの ID に `null` を返す（本書で追加）
 - ID 基盤の Worker の default export は `WorkerEntrypoint` で、ゲームの `ID` binding は entrypoint を指定せずにつなぐ（本書で追加）
-- RPC の契約の型は `kan/game` の `src/rpc.ts` に置く。このファイルは何も import しないので、各ゲームは写して使う（本書で追加）
+- RPC の契約の型は `kan/game` の `src/rpc.ts` に置き、パッケージ `kan-game` の `kan-game/rpc` として配る。このファイルは何も import しない（本書で追加）
 
 ゲームが ID 基盤に提供するもの（`GAME_<名前>` binding）は次のとおり。
 
@@ -199,6 +200,7 @@ TAKO-SEN の開発環境の記録を本番へ移すときに使う。
 ### 名前
 
 名前の規則は TAKO-SEN の現行の規則を全体の規則にする。
+規則は `kan/game` の `src/name-rules.ts` に置き、ゲームが登録の前に確かめられるよう `kan-game/name-rules` として配る（本書で追加）。
 
 - NFC に正規化し、前後の空白を除く
 - 見た目の文字数（書記素クラスタ）で 2〜20 文字。UTF-16 で 256 単位まで

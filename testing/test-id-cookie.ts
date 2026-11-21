@@ -1,15 +1,14 @@
 /**
  * ID cookies for games' tests: a key pair, the `ID_PUBLIC_KEYS` value that
- * accepts it, and cookies signed for any ID, as the ID platform signs them
- * (kan/game src/token.ts signIdToken).
+ * accepts it, and cookies signed for any ID with the ID platform's own
+ * signIdToken (src/token.ts).
  *
- * Copy this file unchanged from kan/game testing/. It imports nothing and
- * needs only Web Crypto. kan/game test/testing-kit.test.ts checks that the
- * real verifyIdCookie accepts what it makes.
+ * Games import it from the `kan-game` package
+ * (`kan-game/testing/test-id-cookie`). kan/game test/testing-kit.test.ts
+ * checks that the real verifyIdCookie accepts what it makes.
  */
 
-/** 400 days, as the ID platform signs (kan/game src/token.ts). */
-const LIFETIME_SECONDS = 400 * 24 * 60 * 60;
+import { signIdToken } from "../src/token";
 
 export interface TestIdIssuerOptions {
   /** The `iss` claim and the issuer the game expects. Default: dev's. */
@@ -67,23 +66,12 @@ export async function createTestIdIssuer(
   )) as JsonWebKey;
   const publicJwk = { kid, kty, crv, x, y };
 
-  const token = async (sub: string, tokenOptions: TestTokenOptions = {}) => {
-    const iat = Math.floor((tokenOptions.nowMs ?? Date.now()) / 1000);
-    const header = { alg: "ES256", typ: "JWT", kid };
-    const payload = {
-      sub,
-      iss: tokenOptions.iss ?? issuer,
-      iat,
-      exp: iat + LIFETIME_SECONDS,
-    };
-    const input = `${encodeJson(header)}.${encodeJson(payload)}`;
-    const signature = await crypto.subtle.sign(
-      { name: "ECDSA", hash: "SHA-256" },
-      pair.privateKey,
-      new TextEncoder().encode(input),
+  const token = (sub: string, tokenOptions: TestTokenOptions = {}) =>
+    signIdToken(
+      { kid, key: pair.privateKey },
+      { sub, iss: tokenOptions.iss ?? issuer },
+      tokenOptions.nowMs ?? Date.now(),
     );
-    return `${input}.${encodeBase64Url(new Uint8Array(signature))}`;
-  };
 
   return {
     issuer,
@@ -95,17 +83,4 @@ export async function createTestIdIssuer(
     cookie: async (sub, tokenOptions) =>
       `${cookieName}=${await token(sub, tokenOptions)}`,
   };
-}
-
-function encodeJson(value: unknown): string {
-  return encodeBase64Url(new TextEncoder().encode(JSON.stringify(value)));
-}
-
-function encodeBase64Url(bytes: Uint8Array): string {
-  let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
 }
