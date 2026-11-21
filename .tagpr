@@ -1,0 +1,18 @@
+# tagpr: main に向けたリリース PR を最新に保ち、マージされたらタグを打つ。
+# workflow は .github/workflows/tagpr.yml、手順は AGENTS.md「ゲームへ配るパッケージ」。
+[tagpr]
+	releaseBranch = main
+	vPrefix = true
+	# 版はルートの package.json（パッケージ kan-game）で持つ。tagpr は package-lock.json を
+	# 書き換えないので、scripts/tagpr/release-prepare.mjs がそろえる。
+	versionFile = package.json
+	# CHANGELOG.md は各 PR で "## [Unreleased]" に手で書く。書くのはゲームへ配るファイルの
+	# 変更だけで、節が空なら tagpr は走らない（版が上がらない）。scripts/tagpr/ は
+	# kan/tagpr-scripts の git subtree。
+	changelog = false
+	postVersionCommand = node scripts/tagpr/release-prepare.mjs
+	# GitHub Release は release.yml が CHANGELOG の節を本文にして作る。
+	release = false
+	# enhancement の付いた PR がマージされていれば minor を上げる。無ければ patch
+	# （リリース PR に tagpr:minor / tagpr:major を付けたときを除く）。
+	minorLabels = enhancement

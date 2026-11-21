@@ -1,0 +1,109 @@
+name: Release
+
+# パッケージ kan-game のリリースタグ（v*）を検査し、CHANGELOG の節を本文にして GitHub Release を
+# 作る。npm へは公開しない（ゲームは git のタグを依存に書く。AGENTS.md「ゲームへ配るパッケージ」）。
+#
+# tagpr.yml が、push したタグで workflow_dispatch で起動する（GITHUB_TOKEN で push したタグは
+# push: tags を起動しない）。push: tags は手で打ったタグのため。どちらでも github.ref はタグ。
+# デプロイの印のタグ（production、production-*）は v で始まらないので起動しない。
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+# 権限はジョブごとに書く。
+permissions:
+  contents: read
+
+# タグごとに 1 run。Release を作っている途中で止めないよう、取り消さない。
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # タグが満たすべき前提を検査する。書き込み権限は持たない。
+  check:
+    # workflow_dispatch はブランチでも起動できるが、リリースはタグだけ。publish はこの
+    # ジョブに依存するので、この条件が両方を守る。
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      prerelease: ${{ steps.tag.outputs.prerelease }}
+    steps:
+      # release-tag.mjs がタグの commit が origin/main の上にあるかを見るので、履歴ごと取る。
+      # 要るのは commit の履歴だけなので、過去の blob は取らない。
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+
+      # ランナー同梱の Node は版がイメージ次第なので、tagpr-scripts のテストと同じ 24 に揃える。
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+
+      # checkout の版によっては、ローカルの refs/tags/<名前> が annotated タグでもコミットを
+      # 直接指す。版に依存しないよう、種別を見る前にタグ ref を取り直す。公開 repo なので
+      # persist-credentials: false でも認証なしで取れる。
+      #
+      # $GITHUB_REF_NAME は Actions が渡す環境変数。${{ }} で式を run へ展開すると
+      # タグ名経由のスクリプト注入を許すため、環境変数のまま参照する。
+      - name: タグが annotated か
+        run: |
+          set -euo pipefail
+          git fetch --force origin "refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME"
+          type=$(git cat-file -t "$GITHUB_REF_NAME")
+          if [ "$type" != tag ]; then
+            echo "::error::$GITHUB_REF_NAME は lightweight タグ（$type）。annotated で打ち直す: git tag -f -a $GITHUB_REF_NAME -m $GITHUB_REF_NAME '$GITHUB_REF_NAME^{commit}' && git push -f origin $GITHUB_REF_NAME"
+            exit 1
+          fi
+          echo "$GITHUB_REF_NAME: annotated"
+
+      # タグの形、package.json の版との一致、タグの commit が main の上にあるかを確かめる。
+      - name: タグが package.json の版と main に合うか
+        id: tag
+        run: node scripts/tagpr/release-tag.mjs "$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+
+      # publish はこの節から本文を作る。節が無ければここで止める。
+      - name: CHANGELOG の節があるか
+        run: node scripts/tagpr/release-notes.mjs "$GITHUB_REF_NAME" > /dev/null
+
+  # 検査を通ったタグで Release を作る。書き込み権限はこのジョブだけが持つ。
+  publish:
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # Release を作る
+    env:
+      GH_REPO: ${{ github.repository }}
+    steps:
+      # scripts/tagpr/release-notes.mjs と CHANGELOG.md のため
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+
+      # 本文は CHANGELOG.md の当該版の節。小見出し（### Added など）もそのまま入る。
+      #
+      # 同じタグで 2 回起動されることがある（手で push したタグの push: tags と、tagpr の run の
+      # 再実行による workflow_dispatch）。Release が既にあれば作らずに緑で終える。
+      - name: Release を作る
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRERELEASE: ${{ needs.check.outputs.prerelease }}
+        run: |
+          set -euo pipefail
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            echo "::notice::$GITHUB_REF_NAME の Release は既にある。作らない"
+            exit 0
+          fi
+          notes="$RUNNER_TEMP/release-notes.md"
+          node scripts/tagpr/release-notes.mjs "$GITHUB_REF_NAME" > "$notes"
+          gh release create "$GITHUB_REF_NAME" --verify-tag --prerelease="$PRERELEASE" \
+            --title "$GITHUB_REF_NAME" --notes-file "$notes"

@@ -27,3 +27,21 @@ jobs:
       - run: npm run typecheck
       - run: npm run format:check
       - run: npm test
+
+  # scripts/tagpr/（kan/tagpr-scripts の git subtree）と、tagpr.yml / tagpr-label.yml が呼ぶ
+  # tagpr-scripts の commit が一致するかを見る。subtree pull で行を上げ忘れた、行だけを
+  # 上げた、scripts/tagpr/ を手で編集した、のどれでも落ちる。詳細は tagpr-scripts の README
+  # 「The tagpr workflow」。
+  tagpr-subtree:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      # tagpr-scripts のテストと postVersionCommand と同じ 24 に揃える。
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+      - name: scripts/tagpr/ が tagpr workflow の SHA と一致するか
+        run: node scripts/tagpr/verify-subtree.mjs
