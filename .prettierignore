@@ -1,2 +1,4 @@
 worker-configuration.d.ts
 docs/
+# kan/tagpr-scripts の git subtree。手で編集しない（AGENTS.md「ゲームへ配るパッケージ」）
+scripts/tagpr/

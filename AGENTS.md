@@ -30,7 +30,9 @@ TypeScript、Cloudflare Workers、D1、Workers Rate Limiting、Vitest（`@cloudf
 | `npm run dev`          | `wrangler dev`（`http://localhost:8787`）                                |
 | `npm run deploy:dev`   | `dev.kan-game.app` へデプロイ                                            |
 
-変更後は `npm run typecheck`、`npm test`、`npm run format:check` を通す。`.github/workflows/ci.yml` が main への push と PR で同じ 3 つを回す。デプロイは CI に入れず、手元で行う。依存の更新は Dependabot（`.github/dependabot.yml`）が npm と GitHub Actions のそれぞれで週に 1 度、1 本の PR にまとめて出す。
+変更後は `npm run typecheck`、`npm test`、`npm run format:check` を通す。`.github/workflows/ci.yml` が main への push と PR で同じ 3 つを回す。ほかに `tagpr-subtree` ジョブが、`scripts/tagpr/` と tagpr の workflow が呼ぶ commit の一致を確かめる（「リリース（tagpr）」を参照）。デプロイは CI に入れず、手元で行う。依存の更新は Dependabot（`.github/dependabot.yml`）が npm と GitHub Actions のそれぞれで週に 1 度、1 本の PR にまとめて出す。
+
+**変更は main へ直接 push せず、ブランチを切って PR で入れる**（ルートに `.tagpr` がある）。tagpr はマージされた PR からリリース PR を組み立てるので、main へ直接 push した変更はリリースの組み立てから漏れる。ブランチの push、PR の作成、マージは利用者の承認を得てから行う。マージは squash で行い、`scripts/tagpr/` の subtree を取り込んだ PR だけはマージコミットにする。リリースの手順は「ゲームへ配るパッケージ」の「リリース（tagpr）」にある。
 
 action の `uses:` は完全な版のタグ（`@v7.0.1`）で書き、実際に動く commit は `.github/workflows/actions.lock` が固定する。lockfile は手で編集しない。`uses:` を変えたら repo のルートで `gh actions-lock` を実行し、workflow と一緒にコミットする。lockfile は `verify-lockfile.yml` が検査する。運用の正本は kan/dotfiles の `docs/github-actions.md`。
 
@@ -63,6 +65,8 @@ action の `uses:` は完全な版のタグ（`@v7.0.1`）で書き、実際に�
 | `public/assets/account.js`          | アカウント画面の動作（引き継ぎコード、復旧コード、コードの入力、退会）                                                                                                                                                                                                                            |
 | `scripts/generate-signing-key.mjs`  | 鍵の生成                                                                                                                                                                                                                                                                                          |
 | `scripts/generate-test-vectors.mjs` | `test-vectors/id-token.json` の生成（`npm run generate-vectors`）。いつ実行するかは「実装の規約」を参照                                                                                                                                                                                           |
+| `scripts/tagpr/`                    | kan/tagpr-scripts の git subtree（リリースの処理）。手で編集しない。「ゲームへ配るパッケージ」の「リリース（tagpr）」を参照                                                                                                                                                                       |
+| `.tagpr` と `CHANGELOG.md`          | tagpr の設定と、パッケージ `kan-game` の変更履歴                                                                                                                                                                                                                                                  |
 | `test-vectors/id-token.json`        | `src/token.ts` の検証の結果を固定するテストベクター。照合の仕方は `test/vectors.test.ts`。ゲームへ配る                                                                                                                                                                                            |
 | `testing/`                          | ゲームがテストに使うファイル。`fake-id-platform.ts`（`IdRpc` の偽物）と `test-id-cookie.ts`（テスト用の鍵と Cookie）。本物との一致は `test/testing-kit.test.ts` で確かめる。ゲームへ配る                                                                                                          |
 | `test/`                             | テストと、テスト用の型（`env.d.ts`）、マイグレーションの適用（`apply-migrations.ts`）                                                                                                                                                                                                             |
@@ -121,9 +125,26 @@ action の `uses:` は完全な版のタグ（`@v7.0.1`）で書き、実際に�
 - 公開するファイルは `package.json` の `exports` と `files` の両方に書く。`files` に無いファイルは、ゲームの `node_modules` に入らない。`exports` の行が `files` に入っていることは `test/package.test.ts` が確かめる。足したら `npm pack --dry-run` で入るファイルも確かめる
 - **配るファイルから、パッケージに入らないファイル（`src/` の他のファイル）や npm のパッケージを import しない。** ゲームの側で import を解決できず、build とテストが失敗する
 - build せず、TypeScript のソースのまま配る。**`prepare` などの install の script を足さない。** git の依存に `prepare` があると、npm はゲームの install のたびに kan/game の devDependencies を入れて script を走らせる。npm 11 は install script を承認制にしているので、止められるおそれもある
-- **版は `package.json` の `version` と tag `v<version>` で表す。** 配るファイルを変えたら、版を上げるかを利用者に確かめる。**版を上げること、tag を打つこと、tag の push は、利用者の承認を得てから行う。** 上げるときは `version` を変えてコミットし、そのコミットに tag を打って push する。`production` と `production-*` の tag はデプロイの印で、パッケージの版とは関係ない
+- 版は `package.json` の `version` と tag `v<version>` で表す。`production` と `production-*` の tag はデプロイの印で、パッケージの版とは関係ない（tagpr は `v` で始まる tag だけを数える）
   - 版の上げ方は semver に従う。ゲームが import している名前を消す、型を狭める、検証の結果を変えるときはメジャーを上げる
   - ゲームは版ごとに順に上げるので、古い版を使うゲームが残っている間も、ID の契約（Cookie の形式、RPC のメソッドと結果）は互換を保つ。互換の無い変更は、全ゲームの上げる順番を決めてから入れる
+
+### リリース（tagpr）
+
+版は [tagpr](https://github.com/Songmu/tagpr) で出す（kan/game#6）。処理は [kan/tagpr-scripts](https://github.com/kan/tagpr-scripts) の共通の workflow とスクリプトで、`scripts/tagpr/` に `git subtree` で取り込んでいる。各段の挙動と、run が失敗したときの扱いの正本は tagpr-scripts の README「The tagpr workflow」。
+
+1. main へのマージのたびに `.github/workflows/tagpr.yml` がリリース PR を作り直す。`CHANGELOG.md` の `## [Unreleased]` が空なら何もしない
+2. 版は既定で patch。`enhancement` の PR がマージされていれば minor。リリース PR に `tagpr:minor` / `tagpr:major` を付けても上げられる（`tagpr-label.yml` がラベルの変化でリリース PR を作り直す）
+3. **リリース PR のマージがリリースの実行にあたる。版の bump と同じく、利用者の指示があってからマージする。** tagpr の run が赤のリリース PR はマージしない。リリース PR は GITHUB_TOKEN で作られるので、`ci.yml` などの PR の CI は走らない（検査結果が付かないのは正常）。リリース PR が変えるのは `package.json`、`package-lock.json`、`CHANGELOG.md` だけ
+4. マージ後の run がタグを打ち、そのタグで `.github/workflows/release.yml` を起動する。`release.yml` はタグが annotated か、`package.json` の版と合うか、main の上にあるかを確かめ、CHANGELOG の節を本文にして GitHub Release を作る
+
+- **`package.json` の `version` と、CHANGELOG の版の節を手で書かない。** リリース PR で tagpr と `scripts/tagpr/release-prepare.mjs` が書く。tag も手で打たない
+- **`CHANGELOG.md` の `## [Unreleased]` に行を足すのは、ゲームへ配るファイル（上の表のファイルと `package.json` の `exports` / `files`）を変える PR だけ。** 節が空なら tagpr は走らない。ポータルや ID 基盤の内部だけの変更で版が上がって、ゲームに中身の変わらない更新が届くことはない。節の中は小見出し（`### Added` / `### Changed` / `### Fixed` など）で分ける。書式の制約（節の中のリンクはインラインで書く、など）は tagpr-scripts の README「What the CHANGELOG has to look like」を正本にする
+- **配る名前を足す変更（minor を上げる変更）は、その PR に `enhancement` ラベルを付ける**（`.tagpr` の `minorLabels`）。付けなければ tagpr は patch を提案する
+- **`scripts/tagpr/` を手で編集しない。** 変更は kan/tagpr-scripts で行う。取り込みは `git subtree pull -S --prefix=scripts/tagpr https://github.com/kan/tagpr-scripts.git <commit> --squash` で行う。手順の正本は tagpr-scripts の README「Changing it」
+  - 取り込んだ PR で、`tagpr.yml` と `tagpr-label.yml` の `uses: kan/tagpr-scripts/...@<SHA>` を取り込んだ commit へ上げる。`ci.yml` の `tagpr-subtree` ジョブ（`verify-subtree.mjs`）が食い違いで落ちる。Dependabot はこの行を上げない（`dependabot.yml` の `ignore`）
+  - subtree を取り込んだ PR はマージコミットでマージする（「技術構成とコマンド」の PR 運用の段落）。理由は tagpr-scripts の README「Changing it」
+- `v1.0.0` は tagpr を入れる前に手で打った。その commit には `CHANGELOG.md` が無いので、`release.yml` では Release を作れない
 
 ## テスト
 
