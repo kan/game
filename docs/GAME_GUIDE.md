@@ -4,7 +4,7 @@ kan-game.app で動くゲームに共通の構成と、実装の注意をまと�
 
 - ID 基盤そのものの仕様（API、Cookie、鍵、退会の流れ）は [`ID_DESIGN.md`](ID_DESIGN.md) を正とする。この文書は、ゲームの側から見た使い方だけを書く
 - 各ゲームのルールと契約は、それぞれの repo の `docs/DESIGN.md`（Pu-Jan は `docs/SPEC.md`）と `docs/DATA_CONTRACT.md` を正とする
-- ここに書いた内容は 2026-11-16 に TAKO-SEN、NYORO-RIN、Vege-Table のコードを比べてまとめた。ゲームの側で作りを変えたら、この文書も直す
+- ここに書いた内容は 2026-11-16 に TAKO-SEN、NYORO-RIN、Vege-Table のコードを比べてまとめ、2026-11-22 に TAKO-SEN と NYORO-RIN のテストと entrypoint の構成を見直した。ゲームの側で作りを変えたら、この文書も直す
 
 ## ゲームの一覧
 
@@ -61,7 +61,8 @@ docs/         DESIGN.md、DATA_CONTRACT.md、DEPLOY.md
 AGENTS.md     エージェント向けの規則（仕様は書かず、docs/ を正とする）
 ```
 
-- Worker の entrypoint は、default export（HTTP と定期実行）と、名前付き export の `GameService`（`WorkerEntrypoint` を継承したクラス）の 2 つを持つ。TAKO-SEN と NYORO-RIN は `src/worker/main.ts` で 2 つを export し、`index.ts` と分けている。`GameService` が `cloudflare:workers` を import するので、Node で動かす今のテストから `index.ts` を読めるようにするためである。テストを `@cloudflare/vitest-plugin` に移せば（「テスト」の節）、分ける必要はなくなる
+- Worker の entrypoint は、default export（HTTP と定期実行）と、名前付き export の `GameService`（`WorkerEntrypoint` を継承したクラス）の 2 つを持つ。TAKO-SEN と NYORO-RIN は `src/worker/main.ts` で 2 つだけを export し、HTTP と定期実行の本体の `index.ts` と分けている。`index.ts` は cron の式（TAKO-SEN の `CRONS`、NYORO-RIN の `SWEEP_CRON` など）も export していて、テストと他のモジュールがそれを import する。workerd は entrypoint のモジュールの名前付き export をすべて entrypoint の候補として扱うので、entrypoint ではない export を持つモジュールを `wrangler.jsonc` の `main` にしない。テストを `@cloudflare/vitest-plugin` に移した後も、両ゲームはこの理由で分けたままにしている（2026-11-22 に確認）
+  - 分けるかどうかの基準: `index.ts` が entrypoint 以外を export するなら分ける。default export しか持たないなら、`index.ts` に `GameService` を置いて `main` にしてもよい
 - `App.vue` に画面を詰め込まない。NYORO-RIN は画面を `MenuDialog.vue` などに、処理を composable（`use-play.ts`、`use-online.ts` など）に分けている。TAKO-SEN の `App.vue` は 3000 行を超えている
 - 文書は、ゲームのルールと設計の正本（`DESIGN.md`）、ID、保存データ、API、D1 の契約（`DATA_CONTRACT.md`）、デプロイの手順（`DEPLOY.md`）に分ける。AGENTS.md には仕様を写さず、規則と開発の知見だけを書く
 
@@ -87,19 +88,10 @@ npm install "kan-game@github:kan/game#semver:^1.0.0"
 - TypeScript のソースのまま配る。Vite、vue-tsc、Vitest、wrangler（esbuild）は `node_modules` の `.ts` をそのまま読む。ゲームの tsconfig は `moduleResolution: "Bundler"` にし、`lib` を `ES2022` 以上にする（`name-rules.ts` が `Intl.Segmenter` を使う）。node は `node_modules` の `.ts` の型を除去しないので、`scripts/*.ts` から node で直接 import しない
 - パッケージのコードは kan/game のテストが確かめるので、ゲームのテストでテストベクターによる検証を繰り返さなくてよい
 - ゲームのライセンス一覧（`scripts/licenses-plugin.ts`）は、`kan-game` を第三者の OSS として数えない。kan/game には LICENSE のファイルが無く、そのままでは `UNKNOWN` として載る。`packageDirOf` で自前のコードとして扱う
-- 版は semver で、メジャーを上げるのは互換が無くなるときだけ。kan/game が新しい版を出したら、ゲームは `npm install "kan-game@github:kan/game#semver:^<版>"` で上げる。git の tag の依存に Dependabot が更新の PR を出すかは、最初のゲームで切り替えたあとに確かめる。出せなければ npm に公開するかを決め直す
+- 版は semver で、メジャーを上げるのは互換が無くなるときだけ。kan/game が新しい版を出したら、ゲームは `npm install "kan-game@github:kan/game#semver:^<版>"` で上げる。git の tag の依存に Dependabot が更新の PR を出すかは、ゲームを切り替えたあとに出す最初の版で確かめる（kan/game#5）。出せなければ npm に公開するかを決め直す
 - kan/game のマイグレーションをテストに使う場合（TAKO-SEN の `tests/kan-game/0001_initial.sql`）は、今のところ写して持つ。写し元のコミットを AGENTS.md に書く
 
-切り替える前の写しの置き場所は次のとおり。どのゲームの写しも kan/game の `258c299` と一致する。切り替えたら写しを消し、この表からそのゲームを外す。
-
-| kan/game | NYORO-RIN、TAKO-SEN | vegtab |
-|---|---|---|
-| `src/token.ts` | `src/worker/id-token.ts` | `src/worker/lib/id-token.ts` |
-| `src/rpc.ts` | `src/worker/id-rpc.ts` | `src/worker/lib/id-rpc.ts` |
-| `testing/fake-id-platform.ts` | `tests/kan-game/` | `tests/worker/kan-game/` |
-| `testing/test-id-cookie.ts` | `tests/kan-game/` | `tests/worker/kan-game/` |
-| `test-vectors/id-token.json` | `tests/id-token-vectors.json` | `tests/worker/kan-game/id-token-vectors.json` |
-| `src/name-rules.ts`（`src/names.ts` の規則） | `src/core/account-profile.ts` に手で写した規則 | 持たない（長さだけを確かめ、規則は `registerName` の `invalid` に任せる） |
+TAKO-SEN、NYORO-RIN、vegtab は、2026-11-22 に写しからパッケージへ切り替え、写しを消した（kan/tako-sen#35、kan/nyoro-rin#17、kan/vegtab#129）。残る写しは、上のマイグレーションだけである。
 
 ### wrangler.jsonc
 
@@ -135,7 +127,7 @@ npm install "kan-game@github:kan/game#semver:^1.0.0"
 - 名前は `POST /api/id/session` の応答で受け取る。`getName` は使わなくてよい
 - 名前の登録は、ゲームの API が `registerName` の RPC を呼び、結果をゲームの D1（TAKO-SEN `leaderboard_profiles`、NYORO-RIN `profiles`）にも写す
 - 結果（`ok` / `already_named` / `name_taken` / `invalid` / `no_id`）は `switch` で分け、`default` で `never` に代入して網羅を型で検査する。kan/game が結果を足したときに気付ける
-- 画面とゲームの Worker で名前を前もって確かめるときは、`kan-game/name-rules` の `nameProblem`（`length` / `chars`）と `normalizeName` を使う。絵文字を描き分けるときは `nameParts` を使う。TAKO-SEN と NYORO-RIN は、切り替えるまで同じ規則を `src/core/account-profile.ts` に手で写している
+- 画面とゲームの Worker で名前を前もって確かめるときは、`kan-game/name-rules` の `nameProblem`（`length` / `chars`）と `normalizeName` を使う。絵文字を描き分けるときは `nameParts` を使う。TAKO-SEN と NYORO-RIN は、手で写していた規則を `kan-game/name-rules` の import に置き換えた
 
 ### 退会（`GameService.deleteAccount`）
 
@@ -258,9 +250,9 @@ dev は検索エンジンに載せない。NYORO-RIN と vegtab がこの形で�
 
 - コア: ルール、Solver、Generator、難易度、保存の形式。Generator の版ごとの盤面は固定ハッシュのテストで守る
 - Worker: `@cloudflare/vitest-plugin` で、Workers のランタイム（workerd）の上で動かす。設定は kan/game の `vitest.config.ts` と同じ形で、`cloudflareTest()` に `wrangler.jsonc` を読ませ、マイグレーションは `readD1Migrations` と `applyD1Migrations` で当てる。コアと画面のテストは、vitest の別の project にして Node で動かす
-  - kan/game、vegtab、Pu-Jan はこの方式になっている。TAKO-SEN と NYORO-RIN は `wrangler` の `getPlatformProxy` で D1 だけを用意して Node で動かしていて、この方式へ移す（kan/tako-sen#32、kan/nyoro-rin#15）
+  - kan/game、TAKO-SEN、NYORO-RIN、vegtab、Pu-Jan はこの方式になっている。TAKO-SEN と NYORO-RIN は、以前は `wrangler` の `getPlatformProxy` で D1 だけを用意して Node で動かしていて、この方式へ移した（kan/tako-sen#32、kan/nyoro-rin#15）。両ゲームとも `cloudflareTest()` にはテスト用の `tests/wrangler.jsonc` を読ませ、Worker のテストのファイルを `worker` の project に列挙している
   - API を呼ぶ補助（`call`、`post`、env の差し替え）は 1 つのファイルにまとめる（kan/game の `test/helpers.ts`、NYORO-RIN の `tests/worker-env.ts`）
-  - 注意は kan/game の AGENTS.md の「テスト」と「開発上の知見」にある（旧名の `@cloudflare/vitest-pool-workers` を入れない、Rate Limiting の数はテストファイルをまたいで共有される、など）
+  - 注意は kan/game の AGENTS.md の「テスト」と「開発上の知見」にある。たとえば、旧名の `@cloudflare/vitest-pool-workers` を入れない。ローカル（miniflare）の Rate Limiting の数は、テストファイルをまたいで共有され、毎分 0 秒に 0 へ戻る
 - ID: `kan-game/testing/*` の偽物と Cookie で、本物と同じ経路を通す。認証を差し替えるモックだけで済ませない
 - テスト用の `wrangler.jsonc` の `database_id` は、本物の ID でなくダミー（`00000000-...`）にする
 - 退会: `ACCOUNT_TABLES` の網羅、退会済みの ID の書き込みを断ること、何度呼んでも同じ結果になること
@@ -317,8 +309,4 @@ kan/game の設定を変える作業は、ゲームの repo の作業とは分�
 
 | repo | issue | 内容 |
 |---|---|---|
-| kan/tako-sen | #35 | kan/game の写しを、依存のパッケージ `kan-game` に切り替える |
-| kan/nyoro-rin | #17 | kan/game の写しを、依存のパッケージ `kan-game` に切り替える |
-| kan/vegtab | #129 | kan/game の写しを、依存のパッケージ `kan-game` に切り替える |
 | kan/game | #5 | Worker と画面の部品を共通のライブラリに移す |
-| kan/game | #6 | この repo を tagpr に対応させ、パッケージ `kan-game` の版を自動で出す |

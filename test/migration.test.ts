@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { hashSecret } from "../src/codes";
 import {
   apiRequest,
+  avoidRateLimitRollover,
   call,
   cookieToken,
   issue,
@@ -88,6 +89,7 @@ describe("POST /api/id/migration/redeem", () => {
 
   it("limits attempts to 5 per minute per IP", async () => {
     const ip = uniqueIp();
+    await avoidRateLimitRollover();
     for (let i = 0; i < 5; i++) {
       await call(redeemRequest({ token: newToken() }, { ip }));
     }

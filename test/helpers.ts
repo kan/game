@@ -17,6 +17,28 @@ export function uniqueIp(): string {
   return `test-${crypto.randomUUID()}`;
 }
 
+/**
+ * Waits for the next rate-limit window if the current one ends within
+ * `marginMs`. Local Rate Limiting resets every count at wall-clock multiples
+ * of the period (each minute for 60 seconds), so a test that uses up a limit
+ * and expects the next call to be refused fails if it straddles that instant.
+ * The limiter runs in its own Durable Object, so fake timers cannot stop it;
+ * call this with real timers. Call it right before the first counted request.
+ */
+export async function avoidRateLimitRollover(
+  periodSeconds = 60,
+  marginMs = 2000,
+): Promise<void> {
+  // workerd advances Date.now() only across I/O; a timer brings it up to date.
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  const periodMs = periodSeconds * 1000;
+  const remaining = periodMs - (Date.now() % periodMs);
+  if (remaining < marginMs) {
+    // A little past the boundary, so the limiter's clock is surely there too.
+    await new Promise((resolve) => setTimeout(resolve, remaining + 50));
+  }
+}
+
 export interface ApiRequestOptions {
   cookie?: string;
   origin?: string | null;

@@ -8,6 +8,7 @@ import {
 } from "../src/token";
 import {
   COOKIE,
+  avoidRateLimitRollover,
   call,
   cookieToken,
   issue,
@@ -126,6 +127,7 @@ describe("POST /api/id/session: issuing", () => {
 
   it("limits issuing to 10 per minute per IP", async () => {
     const ip = uniqueIp();
+    await avoidRateLimitRollover();
     for (let i = 0; i < 10; i++) {
       expect((await call(sessionRequest({ ip }))).status).toBe(200);
     }

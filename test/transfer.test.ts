@@ -6,6 +6,7 @@ import { TRANSFER_CODE_LIFETIME_MS } from "../src/transfer";
 import {
   COOKIE,
   apiRequest,
+  avoidRateLimitRollover,
   call,
   cookieToken,
   issue,
@@ -254,6 +255,7 @@ describe("POST /api/id/transfer-codes/redeem", () => {
 
   it("limits attempts to 5 per minute per IP, separately from issuing IDs", async () => {
     const ip = uniqueIp();
+    await avoidRateLimitRollover();
     for (let i = 0; i < 5; i++) {
       const response = await call(redeemRequest({ code: "ZZZZZZZZ" }, { ip }));
       expect(response.status).toBe(400);

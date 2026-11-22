@@ -5,6 +5,7 @@ import {
   GAME_ORIGIN,
   PORTAL_ORIGIN,
   apiRequest,
+  avoidRateLimitRollover,
   call,
   cookieToken,
   issue,
@@ -158,6 +159,7 @@ describe("POST /api/id/recovery-code/redeem", () => {
 
   it("limits attempts to 5 per minute per IP, separately from transfer codes", async () => {
     const ip = uniqueIp();
+    await avoidRateLimitRollover();
     for (let i = 0; i < 5; i++) {
       const response = await call(
         redeemRequest({ code: "Z".repeat(20) }, { ip }),
