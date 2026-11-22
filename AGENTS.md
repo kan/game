@@ -135,7 +135,8 @@ action の `uses:` は完全な版のタグ（`@v7.0.1`）で書き、実際に�
 
 1. main へのマージのたびに `.github/workflows/tagpr.yml` がリリース PR を作り直す。`CHANGELOG.md` の `## [Unreleased]` が空なら何もしない
 2. 版は既定で patch。`enhancement` の PR がマージされていれば minor。リリース PR に `tagpr:minor` / `tagpr:major` を付けても上げられる（`tagpr-label.yml` がラベルの変化でリリース PR を作り直す）
-3. **リリース PR のマージがリリースの実行にあたる。版の bump と同じく、利用者の指示があってからマージする。** tagpr の run が赤のリリース PR はマージしない。リリース PR は GITHUB_TOKEN で作られるので、`ci.yml` などの PR の CI は走らない（検査結果が付かないのは正常）。リリース PR が変えるのは `package.json`、`package-lock.json`、`CHANGELOG.md` だけ
+3. **リリース PR のマージがリリースの実行にあたる。版の bump と同じく、利用者の指示があってからマージする。** tagpr の run が赤のリリース PR はマージしない。リリース PR は GITHUB_TOKEN で作られるので、`ci.yml` などの PR の CI は走らない（検査結果が付かないのは正常）。リリース PR が変えるのは `package.json`、`package-lock.json`、`CHANGELOG.md` だけ。リリース PR も squash でマージする（マージコミットにするのは subtree を取り込んだ PR だけ）
+   - 最初のリリース PR（v1.0.1、#11）では、tagpr が `.github/release.yml` も足した。GitHub が自動で作るリリースノートから `tagpr` ラベルの PR を除く設定で、tagpr が足したものなので消さずに置く。この repo の Release は `.github/workflows/release.yml` が CHANGELOG から作るので、この設定は使われない
 4. マージ後の run がタグを打ち、そのタグで `.github/workflows/release.yml` を起動する。`release.yml` はタグが annotated か、`package.json` の版と合うか、main の上にあるかを確かめ、CHANGELOG の節を本文にして GitHub Release を作る
 
 - **`package.json` の `version` と、CHANGELOG の版の節を手で書かない。** リリース PR で tagpr と `scripts/tagpr/release-prepare.mjs` が書く。tag も手で打たない
