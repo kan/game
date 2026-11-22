@@ -155,6 +155,7 @@ action の `uses:` は完全な版のタグ（`@v7.0.1`）で書き、実際に�
 - RPC は `import { exports } from "cloudflare:workers"` の `exports.default` から呼ぶ。ゲームの `ID` binding と同じく、本物の RPC を通る。`IdPlatform.fetch` の配線も `test/entrypoint.test.ts` で `exports.default.fetch` を通して確かめる
 - 見えない文字（結合文字、異体字セレクタなど）は、ソースとテストに文字そのものを書かず `\u{3099}` の形で書く
 - Rate Limiting の binding はテストの間（ファイルをまたいでも）で数を共有し、数は実行の後も最長 60 秒残る。**固定の IP を書かない。** 同じ IP で何度も呼ぶテストは `uniqueIp()` で IP を作る（`apiRequest()` は呼ぶたびに `uniqueIp()` を使う）
+  - **1 つの窓の中で積み上げた数に結果が左右されるテストは、最初の 1 回の直前に `await avoidRateLimitRollover()` を呼ぶ。** 上限まで呼んで次が断られることを確かめるテストがこれにあたる。呼ばないと、テストが分の境目をまたいだときに数が 0 に戻り、断られるはずの呼び出しが通って落ちる（「開発上の知見」）
 - テスト用の binding を足したら `test/env.d.ts` に型を足す
 
 ## 開発上の知見
@@ -178,6 +179,7 @@ action の `uses:` は完全な版のタグ（`@v7.0.1`）で書き、実際に�
 - Playwright の MCP でブラウザを操作するとき、`page.once("dialog")` で確認ダイアログを処理すると、ツール側がダイアログを横取りして止まることがある。`browser.newContext()` で作ったページに `page.on("dialog", ...)` を付けると処理できる。新しいコンテキストは、別の端末に見立てるのにも使える
 - Playwright の MCP は、スクリーンショットなどを repo の `.playwright-mcp/` にしか書けない（git の対象外にしてある）
 - パッケージ `kan-game` は、2026-11-21 に NYORO-RIN（`e6e3cc8`）の手元で確かめた。`npm pack` した tarball を入れ、写しをパッケージからの再 export に差し替えると、`vue-tsc`、`vite build`、`wrangler deploy --dry-run`、テストが通った。ライセンス一覧のテストだけは、Worker の import するパッケージに `kan-game` が増えたことで落ちた（`docs/GAME_GUIDE.md` の「依存として入れる」）
+- miniflare の Rate Limiting は、窓を `Math.floor(Date.now() / (period * 1000))` で決める。実装は `node_modules/miniflare/dist/src/workers/ratelimit/ratelimit-object.worker.js` にある。窓は壁時計にそろうので、期間 60 秒なら毎分 0 秒にすべてのキーの数が 0 に戻る。数え始めた時刻からの 60 秒ではない。数えるのは別の Durable Object なので、テストの `vi.useFakeTimers()` では止まらない。2026-11-22 に、境目の 15ms 前から 11 回呼ぶと 11 回目も 200 になることを確かめた（kan/game#8）。`test/helpers.ts` の `avoidRateLimitRollover()` は、窓の残りが 2 秒より短ければ次の窓まで待つ
 
 ## 進み具合
 

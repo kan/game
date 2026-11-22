@@ -6,6 +6,11 @@
 
 ## [Unreleased]
 
+### Changed
+
+- ゲームへ配るファイルに変更はない。ゲームを `kan-game` に切り替えたあと、Dependabot が git の tag の
+  依存に更新の PR を出すかを確かめるために出す版（[#5](https://github.com/kan/game/issues/5)）
+
 ## [1.0.0] - 2026-11-22
 
 ### Added
