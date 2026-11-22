@@ -6,6 +6,8 @@
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-22
+
 ### Changed
 
 - ゲームへ配るファイルに変更はない。ゲームを `kan-game` に切り替えたあと、Dependabot が git の tag の
@@ -20,4 +22,5 @@
   `kan-game/testing/test-id-cookie`、`kan-game/test-vectors/id-token.json` を import する
   （[#3](https://github.com/kan/game/issues/3)）
 
+[1.0.1]: https://github.com/kan/game/releases/tag/v1.0.1
 [1.0.0]: https://github.com/kan/game/releases/tag/v1.0.0
